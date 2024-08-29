@@ -87,8 +87,10 @@ const print = () => {
 
 <template>
     <div>
-        <div class="not-printable flex flex-row h-16 w-full border-b-2 border-black items-center px-8 justify-between ">
-            <h1 @click="$router.push({ name: 'home' })" class="font-bold text-xl cursor-pointer">{{ project }}</h1>
+        <div
+            class="not-printable flex flex-col sm:flex-row h-fit gap-4 p-4 sm:h-16 w-full border-b-2 border-black items-center px-8 justify-between ">
+            <h1 @click="$router.push({ name: 'home' })" class="font-bold text-xl cursor-pointer text-nowrap">{{ project
+                }}</h1>
 
             <div class="flex gap-4">
                 <button @click="startWork(id as Id<'projects'>)"
@@ -109,9 +111,10 @@ const print = () => {
                 <template #empty>No Entries yet.</template>
                 <template #default="{ data: entries }">
                     <div id="printable-content"
-                        class="max-w-full w-fit min-h-fit h-12 outline outline-2 shadow-lg rounded-sm items-center flex justify-between flex-row gap-4"
+                        class="max-w-xl  w-full py-4 sm:py-0 gap-4 sm:gap-0  sm:h-12 outline outline-2 shadow-lg rounded-sm flex flex-col sm:flex-row items-center justify-center  sm:justify-between "
                         v-for="entry in entries" :key="entry._id">
-                        <div class="bg-gray-200 h-full  flex items-center pl-4"><time class="pr-4 font-semibold "
+                        <div class="sm:bg-gray-200 h-full  flex items-center sm:pl-4"><time
+                                class="sm:pr-4 font-semibold "
                                 :datetime="new Date(entry._creationTime).toLocaleDateString()">{{ new
                                     Date(entry.start_time).toLocaleDateString() }}</time> </div>
                         <div class="flex flex-row gap-2">
