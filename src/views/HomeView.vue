@@ -38,15 +38,17 @@ const deleteProjectById = async (id: Id<'projects'>) => {
         <template #empty>No Projects yet.</template>
         <template #default="{ data: projects }">
           <div
-            class="max-w-xl w-full h-12 outline outline-2 shadow-lg rounded-sm flex flex-row items-center  justify-between "
+            class="max-w-xl  w-full py-4 sm:py-0 gap-4 sm:gap-0  sm:h-12 outline outline-2 shadow-lg rounded-sm flex flex-col sm:flex-row items-center justify-center  sm:justify-between "
             v-for="project in projects" :key="project._id">
-            <p class="font-bold pl-4">{{ project.name }}</p>
-            <time class="text-gray-400 font-light" :datetime="new Date(project._creationTime).toLocaleString()">{{ new
-              Date(project._creationTime).toLocaleString() }}</time>
+            <p class="font-bold sm:pl-4 text-nowrap">{{ project.name }}</p>
+            <time class="text-gray-400 font-light text-nowrap"
+              :datetime="new Date(project._creationTime).toLocaleString()">{{ new
+                Date(project._creationTime).toLocaleString() }}</time>
             <div v-if="isEditing" class="flex  items-center h-full flex-row overflow-hidden">
               <button class="bg-red-400 p-4 " @click="deleteProjectById(project._id)">delete</button>
             </div>
-            <button v-else class="w-16 h-8 mr-4 rounded-sm bg-blue-600 text-white shadow-lg hover:shadow hover:scale-95"
+            <button v-else
+              class="w-16 h-8 sm:mr-4 rounded-sm bg-blue-600 text-white shadow-lg hover:shadow hover:scale-95"
               @click="$router.push({ name: 'times', params: { id: project._id, project: project.name } })">open</button>
           </div>
         </template>
