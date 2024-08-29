@@ -111,7 +111,7 @@ const print = () => {
                 <template #empty>No Entries yet.</template>
                 <template #default="{ data: entries }">
                     <div id="printable-content"
-                        class="lg:max-w-2xl min-w-fit w-full   py-4 sm:py-0 gap-4 sm:gap-0  sm:h-12 outline outline-2 shadow-lg rounded-sm flex flex-col sm:flex-row items-center justify-center  sm:justify-between "
+                        class="max-w-xl  w-full py-4 sm:py-0 gap-4 sm:gap-0  sm:h-12 outline outline-2 shadow-lg rounded-sm flex flex-col sm:flex-row items-center justify-center  sm:justify-between "
                         v-for="entry in entries" :key="entry._id">
                         <div class="sm:bg-gray-200 h-full  flex items-center sm:pl-4"><time
                                 class="sm:pr-4 font-semibold "
