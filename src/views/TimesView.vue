@@ -9,6 +9,7 @@ const searchInput = ref('')
 const isEditing = ref(false)
 const startTime = ref('')
 const endTime = ref('')
+
 const endWorkTime = useConvexMutation(api.time_entries.endWorkTime)
 const startWorkTime = useConvexMutation(api.time_entries.startWorkTime)
 const deleteTimeEntry = useConvexMutation(api.time_entries.deleteTimeEntryById)
@@ -91,6 +92,17 @@ const print = () => {
             class="not-printable flex flex-col sm:flex-row h-fit gap-4 p-4 sm:h-16 w-full border-b-2 border-black items-center px-8 justify-between ">
             <h1 @click="$router.push({ name: 'home' })" class="font-bold text-xl cursor-pointer text-nowrap">{{ project
                 }}</h1>
+            <div class="flex flex-row gap-2">
+                <ConvexQuery :query="api.time_entries.getTotalWorkingTimeByProjectId"
+                    :args="{ project_id: id as Id<'projects'> }">
+
+                    <template #default="{ data: workingTime }">
+                        <h2>total working time:</h2>
+                        <time class="font-semibold" :datetime="getWorktime(workingTime)">{{ getWorktime(workingTime)
+                            }}</time>
+                    </template>
+                </ConvexQuery>
+            </div>
 
             <div class="flex gap-4">
                 <button @click="startWork(id as Id<'projects'>)"
@@ -122,7 +134,7 @@ const print = () => {
 
                             <time class="font-semibold" :datetime="getDate(entry.start_time)">{{
                                 getDate(entry.start_time)
-                                }}</time>
+                            }}</time>
                         </div>
 
                         <div class="flex flex-row gap-2 items-center">
@@ -130,7 +142,7 @@ const print = () => {
 
                             <time v-if="entry.end_time" class="font-semibold" :datetime="getDate(entry.end_time)">{{
                                 getDate(entry.end_time)
-                                }}</time>
+                            }}</time>
                             <button v-else
                                 class="w-16 h-10 mr-4  rounded-sm bg-red-600 text-white shadow-lg hover:shadow hover:scale-95 disabled:bg-gray-400 disabled:scale-100 disabled:shadow-none flex items-center justify-center"
                                 @click="endWork(entry._id)">stop</button>

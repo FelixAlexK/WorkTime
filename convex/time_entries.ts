@@ -49,6 +49,20 @@ export const getTimeEntriesByProjectId = query({
   }
 })
 
+export const getTotalWorkingTimeByProjectId = query({
+  args: { project_id: v.id('projects') },
+  handler: async (ctx, args) => {
+    const entries = await getTimeEntriesByProjectId(ctx, { project_id: args.project_id })
+
+    const total = entries.reduce((totalWorkingTime, entry) => {
+      if (!entry.end_time) return totalWorkingTime
+      return totalWorkingTime + (entry.end_time - entry.start_time)
+    }, 0)
+
+    return total
+  }
+})
+
 export const getWorktimeById = query({
   args: {
     id: v.id('time_entries')
