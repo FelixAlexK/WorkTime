@@ -1,37 +1,27 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { api } from '../../convex/_generated/api.js';
 import { useConvexQuery, ConvexQuery, useConvexMutation } from "@convex-vue/core";
-import type { Id, DataModel } from 'convex/_generated/dataModel.js';
-import TimeEntry from '@/components/TimeEntry.vue';
-import { RefreshCcw } from 'lucide-vue-next';
+import type { Id } from 'convex/_generated/dataModel.js';
+defineProps<{ id: string, project: string }>()
 
-const props = defineProps<{ id: string, project: string }>()
-
+const searchInput = ref('')
 const isEditing = ref(false)
-const showCurrentWorkingTime = ref(false)
-const isLoadingCurrentWorkingTime = ref(false)
-const currentWorkingTime = ref('00:00')
-const runningWorkingTime = ref<DataModel['time_entries']['document']>()
-
+const startTime = ref('')
+const endTime = ref('')
 
 const endWorkTime = useConvexMutation(api.time_entries.endWorkTime)
 const startWorkTime = useConvexMutation(api.time_entries.startWorkTime)
 const deleteTimeEntry = useConvexMutation(api.time_entries.deleteTimeEntryById)
-const getRunningTimeEntry = useConvexQuery(api.time_entries.getRunningTimeEntryByProjectId, { project_id: props.id as Id<'projects'> })
+const patchTimeEntry = useConvexMutation(api.time_entries.patchTimeEntryById)
 
-const endWorkMutation = async (id: Id<'time_entries'>) => {
+const endWork = async (id: Id<'time_entries'>) => {
     await endWorkTime.mutate({ id: id })
-    showCurrentWorkingTime.value = false
 }
 
 const startWork = async (id: Id<'projects'>) => {
     isEditing.value = false
-    const result = await startWorkTime.mutate({ project_id: id })
-    if (!result) {
-        alert('First stop the current working time to start a new one')
-    }
-
+    await startWorkTime.mutate({ project_id: id })
 }
 
 const deleteTimeEntryById = async (id: Id<'time_entries'>) => {
@@ -39,7 +29,23 @@ const deleteTimeEntryById = async (id: Id<'time_entries'>) => {
     await deleteTimeEntry.mutate({ id: id })
 }
 
+const updateTimeEntryById = async (id: Id<'time_entries'>, currentStartTime: number, currentEndTime: number) => {
 
+    console.log(currentStartTime, currentEndTime)
+
+    currentStartTime !== convertToTimeStamp(startTime.value) ? await patchTimeEntry.mutate({ id: id, start_time: convertToTimeStamp(startTime.value) }) : undefined
+
+
+    currentEndTime !== convertToTimeStamp(endTime.value) ? await patchTimeEntry.mutate({ id: id, end_time: convertToTimeStamp(endTime.value) }) : undefined
+
+
+
+}
+
+const getDate = (timestamp: number) => {
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString()
+}
 
 const getWorktime = (timeInMs: number) => {
     // Convert milliseconds to seconds
@@ -57,33 +63,27 @@ const getWorktime = (timeInMs: number) => {
     return `${formattedHours}:${formattedMinutes}`;
 }
 
+const convertToTimeStamp = (time: string) => {
+    // Get the value from the time input
+    const timeValue = time;
+
+    // Split the time value into hours and minutes
+    const [hours, minutes] = timeValue.split(':').map(Number);
+
+    // Create a Date object with the current date and the input time
+    const currentDate = new Date();
+    const dateTime = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hours, minutes);
+
+    // Convert the Date object to a timestamp
+    const timestamp = dateTime.getTime();
+
+    return timestamp;
+}
 
 const print = () => {
     isEditing.value = false
     window.print()
 }
-
-const getCurrentWorkingTime = () => {
-    isLoadingCurrentWorkingTime.value = true
-    if (!runningWorkingTime.value?.start_time) return
-    currentWorkingTime.value = getWorktime(Date.now() - runningWorkingTime.value?.start_time)
-    isLoadingCurrentWorkingTime.value = false
-
-}
-
-const toggleCurrentWorkingTime = () => {
-    runningWorkingTime.value = getRunningTimeEntry.data.value ?? undefined
-    if (!runningWorkingTime.value) {
-        alert('no running working time')
-        return
-    }
-    showCurrentWorkingTime.value = !showCurrentWorkingTime.value
-}
-
-onMounted(() => {
-    runningWorkingTime.value = getRunningTimeEntry.data.value ?? undefined
-})
-
 </script>
 
 <template>
@@ -111,17 +111,6 @@ onMounted(() => {
                     class="w-16 h-8 disabled:border-gray-400 disabled:text-gray-400 disabled:hover:bg-white disabled:scale-100 disabled:shadow-none  rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Edit</button>
                 <button @click="print"
                     class="w-16 h-8   rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Print</button>
-                <button @click="toggleCurrentWorkingTime"
-                    class="w-16 h-8    rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Current</button>
-
-            </div>
-
-            <div v-if="showCurrentWorkingTime" class="flex flex-row gap-2 items-center">
-
-                <h2>{{ currentWorkingTime }}</h2>
-                <RefreshCcw v-if="isLoadingCurrentWorkingTime" class="cursor-pointer size-4 animate-spin"></RefreshCcw>
-                <RefreshCcw v-else @click="getCurrentWorkingTime" class="cursor-pointer size-4"></RefreshCcw>
-
             </div>
 
         </div>
@@ -133,20 +122,47 @@ onMounted(() => {
                 <template #error="{ error }">{{ error }}</template>
                 <template #empty>No Entries yet.</template>
                 <template #default="{ data: entries }">
-                    <div id="printable-content" class="w-full" v-for="entry in entries" :key="entry._id">
+                    <div id="printable-content"
+                        class="lg:max-w-2xl  w-full min-w-fit py-4 sm:py-0 gap-4 sm:gap-0  sm:h-12 outline outline-2 shadow-lg rounded-sm flex flex-col sm:flex-row items-center justify-center  sm:justify-between "
+                        v-for="entry in entries" :key="entry._id">
+                        <div class="sm:bg-gray-200 h-full  flex items-center sm:pl-4"><time
+                                class="sm:pr-4 font-semibold "
+                                :datetime="new Date(entry._creationTime).toLocaleDateString()">{{ new
+                                    Date(entry.start_time).toLocaleDateString() }}</time> </div>
+                        <div class="flex flex-row gap-2">
+                            <h2>start:</h2>
 
+                            <time class="font-semibold" :datetime="getDate(entry.start_time)">{{
+                                getDate(entry.start_time)
+                            }}</time>
+                        </div>
 
-                        <TimeEntry @end-work="endWorkMutation(entry._id)" @delete-entry="deleteTimeEntryById(entry._id)"
-                            :creation-time="entry._creationTime" :end-time="entry.end_time" :is-editing="isEditing"
-                            :start-time="entry.start_time">
-                            <template #working-time>
-                                <ConvexQuery :query="api.time_entries.getWorktimeById" :args="{ id: entry._id }">
-                                    <template #default="{ data: worktime }"><time class="font-semibold"
-                                            :datetime="getWorktime(worktime)">{{
-                                                getWorktime(worktime) }}</time></template>
-                                </ConvexQuery>
-                            </template>
-                        </TimeEntry>
+                        <div class="flex flex-row gap-2 items-center">
+                            <h2>stop:</h2>
+
+                            <time v-if="entry.end_time" class="font-semibold" :datetime="getDate(entry.end_time)">{{
+                                getDate(entry.end_time)
+                            }}</time>
+                            <button v-else
+                                class="w-16 h-10 mr-4  rounded-sm bg-red-600 text-white shadow-lg hover:shadow hover:scale-95 disabled:bg-gray-400 disabled:scale-100 disabled:shadow-none flex items-center justify-center"
+                                @click="endWork(entry._id)">stop</button>
+                        </div>
+
+                        <div v-if="entry.end_time" class="flex flex-row gap-2 pr-4">
+                            <h2 class="text-nowrap">working time:</h2>
+                            <ConvexQuery :query="api.time_entries.getWorktimeById" :args="{ id: entry._id }">
+                                <template #default="{ data: worktime }"><time class="font-semibold"
+                                        :datetime="getWorktime(worktime)">{{
+                                            getWorktime(worktime) }}</time></template>
+                            </ConvexQuery>
+                        </div>
+
+                        <div v-if="isEditing" class="flex  items-center h-full flex-row overflow-hidden">
+                            <button v-show="false" class="bg-yellow-400 p-4"
+                                @click="updateTimeEntryById(entry._id, entry.start_time, entry.end_time ?? 0)">edit</button>
+                            <button class="bg-red-400 p-4 " @click="deleteTimeEntryById(entry._id)">delete</button>
+                        </div>
+
 
                     </div>
                 </template>
