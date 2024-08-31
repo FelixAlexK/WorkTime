@@ -4,9 +4,16 @@ import { v } from 'convex/values'
 export const startWorkTime = mutation({
   args: { project_id: v.id('projects') },
   handler: async (ctx, args) => {
-    await ctx.db.insert('time_entries', {
+    const running = await ctx.db
+      .query('time_entries')
+      .withIndex('by_running', (q) => q.eq('running', true))
+      .first()
+
+    if (running) return undefined
+    return await ctx.db.insert('time_entries', {
       project_id: args.project_id,
-      start_time: Date.now()
+      start_time: Date.now(),
+      running: true
     })
   }
 })
@@ -15,7 +22,8 @@ export const endWorkTime = mutation({
   args: { id: v.id('time_entries') },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.id, {
-      end_time: Date.now()
+      end_time: Date.now(),
+      running: false
     })
   }
 })
@@ -60,6 +68,21 @@ export const getTotalWorkingTimeByProjectId = query({
     }, 0)
 
     return total
+  }
+})
+
+export const getRunningTimeEntryByProjectId = query({
+  args: { project_id: v.id('projects') },
+  handler: async (ctx, args) => {
+    const entry = await ctx.db
+      .query('time_entries')
+      .filter((q) =>
+        q.and(q.eq(q.field('project_id'), args.project_id), q.eq(q.field('running'), true))
+      )
+      .first()
+
+    if (!entry) return
+    return entry
   }
 })
 
