@@ -10,7 +10,7 @@ export default defineSchema({
     end_time: v.optional(v.float64()),
     project_id: v.id('projects'),
     start_time: v.float64(),
-    running: v.boolean()
+    running: v.optional(v.boolean())
   })
     .index('by_start_end', ['start_time', 'end_time'])
     .index('by_running', ['running'])
