@@ -136,9 +136,9 @@ onMounted(() => {
                     <div id="printable-content" class="w-full" v-for="entry in entries" :key="entry._id">
 
 
-                        <TimeEntry @end-work="endWorkMutation(entry._id)" @delete-entry="deleteTimeEntryById(entry._id)"
-                            :creation-time="entry._creationTime" :end-time="entry.end_time" :is-editing="isEditing"
-                            :start-time="entry.start_time">
+                        <TimeEntry :id="entry._id" @end-work="endWorkMutation(entry._id)"
+                            @delete-entry="deleteTimeEntryById(entry._id)" :creation-time="entry._creationTime"
+                            :end-time="entry.end_time" :is-editing="isEditing" :start-time="entry.start_time">
                             <template #working-time>
                                 <ConvexQuery :query="api.time_entries.getWorktimeById" :args="{ id: entry._id }">
                                     <template #default="{ data: worktime }"><time class="font-semibold"
