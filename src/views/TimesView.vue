@@ -3,8 +3,9 @@ import { onMounted, ref } from 'vue';
 import { api } from '../../convex/_generated/api.js';
 import { useConvexQuery, ConvexQuery, useConvexMutation } from "@convex-vue/core";
 import type { Id, DataModel } from 'convex/_generated/dataModel.js';
-import TimeEntry from '@/components/TimeEntry.vue';
+import TimeEntry from '@/components/TimeCard.vue';
 import { RefreshCcw } from 'lucide-vue-next';
+import { Play, Pause, StopCircle, LoaderCircle, Timer, Calendar, X } from 'lucide-vue-next';
 
 const props = defineProps<{ id: string, project: string }>()
 
@@ -20,18 +21,13 @@ const startWorkTime = useConvexMutation(api.time_entries.startWorkTime)
 const deleteTimeEntry = useConvexMutation(api.time_entries.deleteTimeEntryById)
 const getRunningTimeEntry = useConvexQuery(api.time_entries.getRunningTimeEntryByProjectId, { project_id: props.id as Id<'projects'> })
 
-const endWorkMutation = async (id: Id<'time_entries'>) => {
-    await endWorkTime.mutate({ id: id })
-    showCurrentWorkingTime.value = false
+const getLocalTimeString = (timestamp: number) => {
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString()
 }
 
-const startWork = async (id: Id<'projects'>) => {
-    isEditing.value = false
-    const result = await startWorkTime.mutate({ project_id: id })
-    if (!result) {
-        alert('First stop the current working time to start a new one')
-    }
-
+const getLocalDateString = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString()
 }
 
 const deleteTimeEntryById = async (id: Id<'time_entries'>) => {
@@ -105,52 +101,87 @@ onMounted(() => {
             </div>
 
             <div class="flex gap-4">
-                <button @click="startWork(id as Id<'projects'>)"
-                    class="w-16 h-8  rounded-sm bg-blue-600  text-white shadow-lg hover:shadow hover:scale-95">Start</button>
                 <button @click="isEditing = !isEditing"
                     class="w-16 h-8 disabled:border-gray-400 disabled:text-gray-400 disabled:hover:bg-white disabled:scale-100 disabled:shadow-none  rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Edit</button>
                 <button @click="print"
                     class="w-16 h-8   rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Print</button>
-                <button @click="toggleCurrentWorkingTime"
-                    class="w-16 h-8    rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Current</button>
 
-            </div>
-
-            <div v-if="showCurrentWorkingTime" class="flex flex-row gap-2 items-center">
-
-                <h2>{{ currentWorkingTime }}</h2>
-                <RefreshCcw v-if="isLoadingCurrentWorkingTime" class="cursor-pointer size-4 animate-spin"></RefreshCcw>
-                <RefreshCcw v-else @click="getCurrentWorkingTime" class="cursor-pointer size-4"></RefreshCcw>
 
             </div>
 
         </div>
-        <div class=" h-full overflow-auto w-full flex gap-4 flex-col items-start p-8">
+        <div class=" p-8 flex flex-col gap-4">
+            <TimeEntry class="not-printable" :project-id="id as Id<'projects'>">
 
-            <ConvexQuery :query="api.time_entries.getTimeEntriesByProjectId"
-                :args="{ project_id: id as Id<'projects'> }">
-                <template #loading>Loading...</template>
-                <template #error="{ error }">{{ error }}</template>
-                <template #empty>No Entries yet.</template>
-                <template #default="{ data: entries }">
-                    <div id="printable-content" class="w-full" v-for="entry in entries" :key="entry._id">
+            </TimeEntry>
+            <div class="not-printable w-full h-fit border border-gray-200 rounded shadow p-4 flex flex-col gap-4">
+                <div class=" flex flex-row  w-full gap-8">
 
 
-                        <TimeEntry :id="entry._id" @end-work="endWorkMutation(entry._id)"
-                            @delete-entry="deleteTimeEntryById(entry._id)" :creation-time="entry._creationTime"
-                            :end-time="entry.end_time" :is-editing="isEditing" :start-time="entry.start_time">
-                            <template #working-time>
-                                <ConvexQuery :query="api.time_entries.getWorktimeById" :args="{ id: entry._id }">
-                                    <template #default="{ data: worktime }"><time class="font-semibold"
-                                            :datetime="getWorktime(worktime)">{{
-                                                getWorktime(worktime) }}</time></template>
-                                </ConvexQuery>
-                            </template>
-                        </TimeEntry>
+                    <h1 class="font-semibold text-lg flex text-nowrap">Recent Tasks</h1>
 
-                    </div>
-                </template>
-            </ConvexQuery>
+                    <ConvexQuery :query="api.time_entries.getTotalWorkingTimeByProjectId"
+                        :args="{ project_id: id as Id<'projects'> }">
+
+                        <template #default="{ data: workingTime }">
+                            <div class="flex flex-row items-center gap-2  ">
+                                <Timer class="size-4"></Timer>
+                                <time class="underline" :datetime="getWorktime(workingTime)">{{
+                                    getWorktime(workingTime)
+                                    }}</time>
+
+                            </div>
+
+                        </template>
+                    </ConvexQuery>
+
+                </div>
+                <ConvexQuery :query="api.time_entries.getTimeEntriesByProjectId"
+                    :args="{ project_id: id as Id<'projects'> }">
+
+                    <template #default="{ data: entries }">
+
+                        <div v-for="entry in entries" :key="entry._id" id="printable-content"
+                            class="w-full px-4 py-2 h-fit border border-gray-200 rounded shadow flex flex-row  ">
+                            <time datetime="" class="flex flex-row gap-2 items-center text-gray-600">
+                                <Calendar class="size-4"></Calendar>{{ getLocalDateString(entry.start_time)
+                                }}
+                            </time>
+                            <div class="flex justify-center w-full gap-8">
+                                <div class="flex flex-col gap-2 items-center">
+
+                                    <time class="flex flex-row gap-2 items-center justify-start w-full" datetime="">
+                                        <Play class="size-4"></Play>{{ getLocalTimeString(entry.start_time)
+                                        }}
+                                    </time>
+                                    <time class="flex flex-row gap-2 items-center justify-start w-full" datetime="">
+                                        <StopCircle class="size-4"></StopCircle>{{ entry.end_time ?
+                                            getLocalTimeString(entry.end_time ?? 0) :
+                                            '--:--:--'
+                                        }}
+                                    </time>
+                                </div>
+                                <time class="flex flex-row gap-2 items-center" :class="{ 'underline': entry.end_time }"
+                                    datetime="">
+                                    <Timer class="size-4"></Timer>{{ entry.end_time ?
+                                        getWorktime(entry.end_time - entry.start_time) :
+                                        '--:--'
+                                    }}
+                                </time>
+                            </div>
+
+                            <div class="flex items-center justify-end ">
+                                <button @click="deleteTimeEntryById(entry._id)">
+
+                                    <X class="size-4"></X>
+                                </button>
+                            </div>
+                        </div>
+
+                    </template>
+                </ConvexQuery>
+            </div>
+
         </div>
     </div>
 
@@ -160,6 +191,7 @@ onMounted(() => {
 @media print {
     body * {
         visibility: hidden;
+
     }
 
     .not-printable {
@@ -169,6 +201,7 @@ onMounted(() => {
     #printable-content,
     #printable-content * {
         visibility: visible;
+
     }
 
 
