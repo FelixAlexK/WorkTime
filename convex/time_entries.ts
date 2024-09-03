@@ -77,11 +77,14 @@ export const getRunningTimeEntryByProjectId = query({
     const entry = await ctx.db
       .query('time_entries')
       .filter((q) =>
-        q.and(q.eq(q.field('project_id'), args.project_id), q.eq(q.field('running'), true))
+        q.and(
+          q.eq(q.field('project_id'), args.project_id),
+          q.eq(q.field('running'), true),
+          q.eq(q.field('end_time'), undefined)
+        )
       )
       .first()
 
-    if (!entry) return
     return entry
   }
 })
