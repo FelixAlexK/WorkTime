@@ -5,6 +5,7 @@ import { useConvexQuery, ConvexQuery, useConvexMutation } from "@convex-vue/core
 import type { Id, DataModel } from 'convex/_generated/dataModel';
 import { api } from '../../convex/_generated/api';
 import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watchEffect } from 'vue';
+import ButtonComponent from './ButtonComponent.vue';
 
 const props = defineProps<{ projectId: Id<'projects'> }>()
 
@@ -44,7 +45,7 @@ const endWork = async () => {
 }
 
 const updateCurrentWorkingTime = () => {
-    isRunning.value = true
+
     if (!runningTimeEntry.value) {
         runningTimeEntry.value = getRunningTimeEntry.data.value ?? {}
     }
@@ -100,20 +101,26 @@ const clearUpdateInterval = () => {
         <div class="flex justify-center flex-col items-center">
             <time class="text-3xl font-semibold pt-8" datetime="">{{ currentWorkingTime }}</time>
             <div class="flex gap-4 pt-4">
-                <button @click="startWork"
-                    class="bg-black rounded px-4 py-1 text-white flex flex-row gap-2 items-center">
-                    <Play class="size-4"></Play>
-                    Start
-                </button>
-                <button class="bg-gray-500 rounded px-4 py-1 text-white flex flex-row gap-2 items-center">
-                    <Pause class="size-4"></Pause>
-                    Pause
-                </button>
-                <button @click="endWork"
-                    class="bg-gray-500 rounded px-4 py-1 text-white flex flex-row gap-2 items-center">
-                    <StopCircle class="size-4"></StopCircle>
-                    Stop
-                </button>
+                <ButtonComponent @action="startWork" :outlined="false" label="Start">
+                    <template #icon>
+                        <Play class="size-4"></Play>
+                    </template>
+                </ButtonComponent>
+                <ButtonComponent :outlined="true" label="Pause">
+                    <template #icon>
+                        <Pause class="size-4">
+                        </Pause>
+                    </template>
+                </ButtonComponent>
+                <ButtonComponent @action="endWork" :outlined="true" label="Stop">
+                    <template #icon>
+                        <StopCircle class="size-4">
+                        </StopCircle>
+                    </template>
+                </ButtonComponent>
+
+
+
             </div>
         </div>
     </div>
