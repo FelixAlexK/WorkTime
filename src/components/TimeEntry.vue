@@ -1,60 +1,47 @@
 <script setup lang="ts">
-
-import { CircleStop, CirclePlay, Timer, SquarePen, Trash } from 'lucide-vue-next';
-
-defineEmits(['endWork', 'deleteEntry', 'updateEntry'])
-const props = defineProps<{ creationTime: number, startTime: number, endTime: number | undefined, isEditing: boolean }>()
-
-const getDate = (timestamp: number) => {
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString()
-}
-
-
-
+import { Play, Pause, StopCircle, LoaderCircle, Timer, Calendar, X } from 'lucide-vue-next';
+defineProps<{ start: string, stop: string, workingtime: string, date: string }>()
+defineEmits(['delete'])
 </script>
 
 <template>
-    <div class="flex flex-row min-w-fit h-20 items-center w-full outline outline-2 rounded-sm ">
-        <div class="h-full bg-gray-200 flex items-center px-4">
-            <time class=" font-semibold " :datetime="new Date(creationTime).toLocaleDateString()">{{ new
-                Date(startTime).toLocaleDateString() }}</time>
+    <div class="w-full min-w-fit px-4 py-2 h-fit border border-gray-200 rounded shadow flex flex-row   ">
+        <div class="flex flex-row items-center justify-start gap-2 w-full">
+            <Calendar class="size-4"></Calendar>
+            <time datetime="" class=" text-nowrap">
+                {{ date }}
+            </time>
         </div>
-        <div class="flex flex-row items-center w-full justify-evenly">
-            <div class="flex flex-col gap-y-2">
-                <div class="flex flex-row items-center gap-2">
-                    <h2 class="hidden">start:</h2>
-                    <CirclePlay class="size-4"></CirclePlay> <time class="font-semibold"
-                        :datetime="getDate(startTime)">{{
-                            getDate(startTime)
-                        }}</time>
-                </div>
-                <div class="flex flex-row  items-center gap-2">
-                    <h2 class="hidden">stop:</h2>
-                    <CircleStop class="size-4"></CircleStop>
-                    <time v-if="endTime" class="font-semibold" :datetime="getDate(endTime)">{{
-                        getDate(endTime)
-                    }}</time>
-                    <button v-else
-                        class="w-16 h-10 mr-4  rounded-sm bg-red-600 text-white shadow-lg hover:shadow hover:scale-95 disabled:bg-gray-400 disabled:scale-100 disabled:shadow-none flex items-center justify-center"
-                        @click="$emit('endWork')">stop</button>
-                </div>
+        <div class="flex flex-col md:flex-row md:gap-4 justify-center md:w-fit md:pr-8 w-full">
+            <div class="flex flex-row items-center gap-2">
+                <Play class="size-4"></Play>
+                <time class="text-nowrap " datetime="">
+                    {{ start }}
+                </time>
             </div>
+            <div class="flex flex-row items-center gap-2 w-full">
 
-            <div v-if="endTime" class="flex flex-row gap-2 items-center">
-                <h2 class="text-nowrap hidden">working time:</h2>
-                <Timer class="size-4 "></Timer>
-                <slot name="working-time"></slot>
+                <StopCircle class="size-4">
+                </StopCircle>
+                <time class="text-nowrap " datetime="">
+                    {{ stop }}
+                </time>
             </div>
         </div>
+        <div class="sm:flex justify-start w-full  items-center hidden">
+            <div class="flex flex-row items-center gap-2">
 
-    </div>
-    <div v-if="!isEditing" class="flex items-center justify-center pt-2 pb-4 gap-4">
-        <button class="hover:text-yellow-600" @click="$emit('updateEntry')">
-            <SquarePen class="size-6"></SquarePen>
-        </button>
-        <button class=" hover:text-red-600 " @click="$emit('deleteEntry')">
-            <Trash class="size-6"></Trash>
-        </button>
+                <Timer class="size-4"></Timer>
+                <time class="" datetime="">
+                    {{ workingtime }}
+                </time>
+            </div>
+        </div>
+        <div class="flex items-center justify-end " id="printable-content">
+            <button @click="$emit('delete')">
+
+                <X class="size-4"></X>
+            </button>
+        </div>
     </div>
 </template>

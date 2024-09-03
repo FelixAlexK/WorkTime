@@ -102,3 +102,15 @@ export const getWorktimeById = query({
     return end - start
   }
 })
+
+export const getTimeEntryById = query({
+  args: {
+    id: v.id('time_entries')
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('time_entries')
+      .filter((q) => q.eq(q.field('_id'), args.id))
+      .first()
+  }
+})

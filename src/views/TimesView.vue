@@ -3,35 +3,29 @@ import { onMounted, ref } from 'vue';
 import { api } from '../../convex/_generated/api.js';
 import { useConvexQuery, ConvexQuery, useConvexMutation } from "@convex-vue/core";
 import type { Id, DataModel } from 'convex/_generated/dataModel.js';
+import TimeCard from '@/components/TimeCard.vue';
 import TimeEntry from '@/components/TimeEntry.vue';
-import { RefreshCcw } from 'lucide-vue-next';
+import { Timer } from 'lucide-vue-next';
+import PageHeader from '@/components/PageHeader.vue';
+import { Printer, Edit } from 'lucide-vue-next';
+import ButtonComponent from '../components/ButtonComponent.vue';
 
 const props = defineProps<{ id: string, project: string }>()
 
 const isEditing = ref(false)
-const showCurrentWorkingTime = ref(false)
-const isLoadingCurrentWorkingTime = ref(false)
-const currentWorkingTime = ref('00:00')
 const runningWorkingTime = ref<DataModel['time_entries']['document']>()
 
 
-const endWorkTime = useConvexMutation(api.time_entries.endWorkTime)
-const startWorkTime = useConvexMutation(api.time_entries.startWorkTime)
 const deleteTimeEntry = useConvexMutation(api.time_entries.deleteTimeEntryById)
 const getRunningTimeEntry = useConvexQuery(api.time_entries.getRunningTimeEntryByProjectId, { project_id: props.id as Id<'projects'> })
 
-const endWorkMutation = async (id: Id<'time_entries'>) => {
-    await endWorkTime.mutate({ id: id })
-    showCurrentWorkingTime.value = false
+const getLocalTimeString = (timestamp: number) => {
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString()
 }
 
-const startWork = async (id: Id<'projects'>) => {
-    isEditing.value = false
-    const result = await startWorkTime.mutate({ project_id: id })
-    if (!result) {
-        alert('First stop the current working time to start a new one')
-    }
-
+const getLocalDateString = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString()
 }
 
 const deleteTimeEntryById = async (id: Id<'time_entries'>) => {
@@ -63,22 +57,7 @@ const print = () => {
     window.print()
 }
 
-const getCurrentWorkingTime = () => {
-    isLoadingCurrentWorkingTime.value = true
-    if (!runningWorkingTime.value?.start_time) return
-    currentWorkingTime.value = getWorktime(Date.now() - runningWorkingTime.value?.start_time)
-    isLoadingCurrentWorkingTime.value = false
 
-}
-
-const toggleCurrentWorkingTime = () => {
-    runningWorkingTime.value = getRunningTimeEntry.data.value ?? undefined
-    if (!runningWorkingTime.value) {
-        alert('no running working time')
-        return
-    }
-    showCurrentWorkingTime.value = !showCurrentWorkingTime.value
-}
 
 onMounted(() => {
     runningWorkingTime.value = getRunningTimeEntry.data.value ?? undefined
@@ -88,69 +67,72 @@ onMounted(() => {
 
 <template>
     <div>
-        <div
-            class="not-printable flex flex-col sm:flex-row h-fit gap-4 p-4 sm:h-16 w-full border-b-2 border-black items-center px-8 justify-between ">
-            <h1 @click="$router.push({ name: 'home' })" class="font-bold text-xl cursor-pointer text-nowrap">{{ project
-                }}</h1>
-            <div class="flex flex-row gap-2">
-                <ConvexQuery :query="api.time_entries.getTotalWorkingTimeByProjectId"
+        <PageHeader @return="$router.push('/')" :label="project">
+            <template #action>
+                <ButtonComponent @action="print" :outlined="true" :label="'Print'">
+                    <template #icon>
+                        <Printer class="size-4">
+                        </Printer>
+                    </template>
+                </ButtonComponent>
+
+                <ButtonComponent :outlined="true" :label="'Edit'">
+                    <template #icon>
+                        <Edit class="size-4">
+                        </Edit>
+                    </template>
+                </ButtonComponent>
+            </template>
+        </PageHeader>
+
+        <div class=" p-8 flex flex-col gap-4">
+            <TimeCard class="not-printable" :project-id="id as Id<'projects'>">
+
+            </TimeCard>
+            <div class="not-printable w-full h-fit border border-gray-200 rounded shadow p-4 flex flex-col gap-4">
+                <div class=" flex flex-row  w-full gap-8">
+
+
+                    <h1 class="font-semibold text-lg flex text-nowrap">Recent Tasks</h1>
+
+                    <ConvexQuery :query="api.time_entries.getTotalWorkingTimeByProjectId"
+                        :args="{ project_id: id as Id<'projects'> }">
+
+                        <template #default="{ data: workingTime }">
+                            <div class="flex flex-row items-center gap-2  ">
+                                <Timer class="size-4"></Timer>
+                                <time class="underline" :datetime="getWorktime(workingTime)">{{
+                                    getWorktime(workingTime)
+                                }}</time>
+
+                            </div>
+
+                        </template>
+                    </ConvexQuery>
+
+                </div>
+                <ConvexQuery :query="api.time_entries.getTimeEntriesByProjectId"
                     :args="{ project_id: id as Id<'projects'> }">
 
-                    <template #default="{ data: workingTime }">
-                        <h2>total working time:</h2>
-                        <time class="font-semibold" :datetime="getWorktime(workingTime)">{{ getWorktime(workingTime)
-                            }}</time>
+                    <template #loading>loading...</template>
+                    <template #empty>no recent tasks yet...</template>
+
+                    <template #default="{ data: entries }">
+
+
+                        <div v-for="entry in entries" :key="entry._id" id="printable-content">
+                            <TimeEntry @delete="deleteTimeEntryById(entry._id)"
+                                :start="getLocalTimeString(entry.start_time)" :stop="entry.end_time ?
+                                    getLocalTimeString(entry.end_time ?? 0) :
+                                    '--:--:--'" :workingtime="entry.end_time ?
+                                        getWorktime(entry.end_time - entry.start_time) :
+                                        '--:--'" :date="getLocalDateString(entry.start_time)"></TimeEntry>
+                        </div>
+
                     </template>
                 </ConvexQuery>
             </div>
 
-            <div class="flex gap-4">
-                <button @click="startWork(id as Id<'projects'>)"
-                    class="w-16 h-8  rounded-sm bg-blue-600  text-white shadow-lg hover:shadow hover:scale-95">Start</button>
-                <button @click="isEditing = !isEditing"
-                    class="w-16 h-8 disabled:border-gray-400 disabled:text-gray-400 disabled:hover:bg-white disabled:scale-100 disabled:shadow-none  rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Edit</button>
-                <button @click="print"
-                    class="w-16 h-8   rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Print</button>
-                <button @click="toggleCurrentWorkingTime"
-                    class="w-16 h-8    rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Current</button>
-
-            </div>
-
-            <div v-if="showCurrentWorkingTime" class="flex flex-row gap-2 items-center">
-
-                <h2>{{ currentWorkingTime }}</h2>
-                <RefreshCcw v-if="isLoadingCurrentWorkingTime" class="cursor-pointer size-4 animate-spin"></RefreshCcw>
-                <RefreshCcw v-else @click="getCurrentWorkingTime" class="cursor-pointer size-4"></RefreshCcw>
-
-            </div>
-
-        </div>
-        <div class=" h-full overflow-auto w-full flex gap-4 flex-col items-start p-8">
-
-            <ConvexQuery :query="api.time_entries.getTimeEntriesByProjectId"
-                :args="{ project_id: id as Id<'projects'> }">
-                <template #loading>Loading...</template>
-                <template #error="{ error }">{{ error }}</template>
-                <template #empty>No Entries yet.</template>
-                <template #default="{ data: entries }">
-                    <div id="printable-content" class="w-full" v-for="entry in entries" :key="entry._id">
-
-
-                        <TimeEntry @end-work="endWorkMutation(entry._id)" @delete-entry="deleteTimeEntryById(entry._id)"
-                            :creation-time="entry._creationTime" :end-time="entry.end_time" :is-editing="isEditing"
-                            :start-time="entry.start_time">
-                            <template #working-time>
-                                <ConvexQuery :query="api.time_entries.getWorktimeById" :args="{ id: entry._id }">
-                                    <template #default="{ data: worktime }"><time class="font-semibold"
-                                            :datetime="getWorktime(worktime)">{{
-                                                getWorktime(worktime) }}</time></template>
-                                </ConvexQuery>
-                            </template>
-                        </TimeEntry>
-
-                    </div>
-                </template>
-            </ConvexQuery>
         </div>
     </div>
 
@@ -160,6 +142,7 @@ onMounted(() => {
 @media print {
     body * {
         visibility: hidden;
+
     }
 
     .not-printable {
@@ -169,6 +152,7 @@ onMounted(() => {
     #printable-content,
     #printable-content * {
         visibility: visible;
+
     }
 
 
