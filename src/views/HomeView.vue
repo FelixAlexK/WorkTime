@@ -5,6 +5,10 @@ import { ref, watch } from 'vue';
 import { api } from '../../convex/_generated/api.js';
 import { useConvexQuery, ConvexQuery, useConvexMutation } from "@convex-vue/core";
 import type { Id } from 'convex/_generated/dataModel.js';
+import PageHeader from '@/components/PageHeader.vue';
+import ButtonComponent from '@/components/ButtonComponent.vue';
+import { PlusCircle, PenBoxIcon } from 'lucide-vue-next';
+import ProjectItem from '@/components/ProjectItem.vue';
 
 const { mutate } = useConvexMutation(api.projects.deleteProject)
 
@@ -12,23 +16,40 @@ const isEditing = ref(false)
 
 const deleteProjectById = async (id: Id<'projects'>) => {
 
-  if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) return
+  if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+    isEditing.value = false
+    return
+  }
   await mutate({ id: id })
 }
 </script>
 
 <template>
   <div class="flex flex-col h-full">
-    <div class="flex flex-row h-16 w-full border-b-2 border-black items-center px-8 justify-between ">
-      <h1 class="font-bold text-xl">Projects</h1>
 
-      <div class="flex gap-4">
+    <PageHeader label="Projects">
+      <template #action>
 
-        <button class="w-16 h-8  rounded-sm bg-blue-600 text-white shadow-lg hover:shadow hover:scale-95">New</button>
-        <button @click="isEditing = !isEditing"
-          class="w-16 h-8 disabled:border-gray-400 disabled:text-gray-400 disabled:hover:bg-white disabled:scale-100 disabled:shadow-none  rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Edit</button>
-      </div>
-    </div>
+
+
+        <ButtonComponent :outlined="false" :label="'New'">
+          <template #icon>
+            <PlusCircle class="size-4">
+            </PlusCircle>
+          </template>
+        </ButtonComponent>
+        <ButtonComponent @action="isEditing = !isEditing" :outlined="true" :label="'Edit'">
+          <template #icon>
+            <PenBoxIcon class="size-4">
+            </PenBoxIcon>
+          </template>
+        </ButtonComponent>
+
+
+
+
+      </template>
+    </PageHeader>
 
     <div class=" h-full overflow-auto w-full flex gap-4 flex-col items-start p-8">
 
@@ -37,19 +58,11 @@ const deleteProjectById = async (id: Id<'projects'>) => {
         <template #error="{ error }">{{ error }}</template>
         <template #empty>No Projects yet.</template>
         <template #default="{ data: projects }">
-          <div
-            class="max-w-xl  w-full py-4 sm:py-0 gap-4 sm:gap-0  sm:h-12 outline outline-2 shadow-lg rounded-sm flex flex-col sm:flex-row items-center justify-center  sm:justify-between "
-            v-for="project in projects" :key="project._id">
-            <p class="font-bold sm:pl-4 text-nowrap">{{ project.name }}</p>
-            <time class="text-gray-400 font-light text-nowrap"
-              :datetime="new Date(project._creationTime).toLocaleString()">{{ new
-                Date(project._creationTime).toLocaleString() }}</time>
-            <div v-if="isEditing" class="flex  items-center h-full flex-row overflow-hidden">
-              <button class="bg-red-400 p-4 " @click="deleteProjectById(project._id)">delete</button>
-            </div>
-            <button v-else
-              class="w-16 h-8 sm:mr-4 rounded-sm bg-blue-600 text-white shadow-lg hover:shadow hover:scale-95"
-              @click="$router.push({ name: 'times', params: { id: project._id, project: project.name } })">open</button>
+          <div class="w-full" v-for="project in projects" :key="project._id">
+            <ProjectItem :edit="isEditing" :name="project.name" :date="new
+              Date(project._creationTime).toLocaleDateString()"
+              @open="$router.push({ name: 'times', params: { id: project._id, project: project.name } })"
+              @delete="deleteProjectById(project._id)"></ProjectItem>
           </div>
         </template>
       </ConvexQuery>
