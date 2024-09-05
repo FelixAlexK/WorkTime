@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Play, Pause, StopCircle, LoaderCircle } from 'lucide-vue-next';
+import { Play, StopCircle } from 'lucide-vue-next';
 import { useConvexQuery, useConvexMutation } from "@convex-vue/core";
-import type { Id, DataModel } from 'convex/_generated/dataModel';
+import type { Id } from 'convex/_generated/dataModel';
 import { api } from '../../convex/_generated/api';
-import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watchEffect } from 'vue';
 import ButtonComponent from './ButtonComponent.vue';
 
 const props = defineProps<{ projectId: Id<'projects'> }>();
@@ -62,11 +62,6 @@ const endWork = async () => {
     localStorage.removeItem(`timeTracker_${props.projectId}`);
 };
 
-const pauseWork = () => {
-    isRunning.value = false;
-    stopTimer();
-    saveState();
-};
 
 function startTimer() {
     stopTimer(); // Clear any existing interval
@@ -134,12 +129,7 @@ onBeforeUnmount(() => {
                         <Play class="size-4"></Play>
                     </template>
                 </ButtonComponent>
-                <ButtonComponent @action="pauseWork" outlined label="Pause" :disabled="!isRunning">
-                    <template #icon>
-                        <Pause class="size-4">
-                        </Pause>
-                    </template>
-                </ButtonComponent>
+
                 <ButtonComponent @action="endWork" outlined label="Stop" :disabled="!isRunning">
                     <template #icon>
                         <StopCircle class="size-4">
