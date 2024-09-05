@@ -5,7 +5,7 @@ defineEmits(['action'])
 
 <template>
     <button @click="$emit('action')" :type="type"
-        :class="{ 'border-gray-500 border-2 hover:bg-gray-500 hover:text-white text-gray-500 ': outlined, 'bg-black text-white hover:bg-gray-700': !outlined }"
+        :class="{ 'border-black border-2 hover:bg-black hover:text-white text-black ': outlined, 'border-black border-2 hover:bg-white hover:text-black text-white bg-black': !outlined }"
         class=" rounded px-4 py-1 flex flex-row gap-2 items-center justify-center">
         <div v-if="$slots.icon" class="">
 
