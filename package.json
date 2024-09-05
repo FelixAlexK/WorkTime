@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@convex-vue/core": "^0.0.4",
+    "@formkit/auto-animate": "^0.8.2",
     "@vueuse/core": "^11.0.3",
     "convex": "^1.15.0",
     "lucide-vue-next": "^0.436.0",
