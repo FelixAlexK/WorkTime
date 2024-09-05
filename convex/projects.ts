@@ -22,7 +22,7 @@ export const deleteProject = mutation({
         await deleteTimeEntryById(ctx, { id: entry._id })
       }
     }
-    
+
     await ctx.db.delete(args.id)
   }
 })
@@ -30,7 +30,7 @@ export const deleteProject = mutation({
 export const getProjects = query({
   args: {},
   handler: async (ctx, args) => {
-    return await ctx.db.query('projects').collect()
+    return await ctx.db.query('projects').order('desc').collect()
   }
 })
 
