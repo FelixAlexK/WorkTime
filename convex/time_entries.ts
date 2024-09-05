@@ -18,6 +18,17 @@ export const startWorkTime = mutation({
   }
 })
 
+export const createWorkingTime = mutation({
+  args: { project_id: v.id('projects'), start_time: v.number(), end_time: v.number() },
+  handler: async (ctx, args) => {
+    await ctx.db.insert('time_entries', {
+      project_id: args.project_id,
+      start_time: args.start_time,
+      end_time: args.end_time
+    })
+  }
+})
+
 export const endWorkTime = mutation({
   args: { id: v.id('time_entries') },
   handler: async (ctx, args) => {

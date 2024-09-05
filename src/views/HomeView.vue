@@ -32,13 +32,13 @@ const deleteProjectById = async (id: Id<'projects'>) => {
 
 
 
-        <ButtonComponent :outlined="false" :label="'New'">
+        <ButtonComponent :label="'New'">
           <template #icon>
             <PlusCircle class="size-4">
             </PlusCircle>
           </template>
         </ButtonComponent>
-        <ButtonComponent @action="isEditing = !isEditing" :outlined="true" :label="'Edit'">
+        <ButtonComponent @action="isEditing = !isEditing" outlined :label="'Edit'">
           <template #icon>
             <PenBoxIcon class="size-4">
             </PenBoxIcon>
@@ -51,7 +51,7 @@ const deleteProjectById = async (id: Id<'projects'>) => {
       </template>
     </PageHeader>
 
-    <div class=" h-full overflow-auto w-full flex gap-4 flex-col items-start p-8">
+    <div v-auto-animate class=" h-full overflow-auto w-full flex gap-4 flex-col items-start p-8">
 
       <ConvexQuery :query="api.projects.getProjects" :args="{}">
         <template #loading>Loading...</template>
