@@ -18,17 +18,6 @@ export const startWorkTime = mutation({
   }
 })
 
-export const createWorkingTime = mutation({
-  args: { project_id: v.id('projects'), start_time: v.number(), end_time: v.number() },
-  handler: async (ctx, args) => {
-    await ctx.db.insert('time_entries', {
-      project_id: args.project_id,
-      start_time: args.start_time,
-      end_time: args.end_time
-    })
-  }
-})
-
 export const endWorkTime = mutation({
   args: { id: v.id('time_entries') },
   handler: async (ctx, args) => {
@@ -88,14 +77,11 @@ export const getRunningTimeEntryByProjectId = query({
     const entry = await ctx.db
       .query('time_entries')
       .filter((q) =>
-        q.and(
-          q.eq(q.field('project_id'), args.project_id),
-          q.eq(q.field('running'), true),
-          q.eq(q.field('end_time'), undefined)
-        )
+        q.and(q.eq(q.field('project_id'), args.project_id), q.eq(q.field('running'), true))
       )
       .first()
 
+    if (!entry) return
     return entry
   }
 })
@@ -114,17 +100,5 @@ export const getWorktimeById = query({
     const end = entry?.end_time ?? 0
 
     return end - start
-  }
-})
-
-export const getTimeEntryById = query({
-  args: {
-    id: v.id('time_entries')
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query('time_entries')
-      .filter((q) => q.eq(q.field('_id'), args.id))
-      .first()
   }
 })
