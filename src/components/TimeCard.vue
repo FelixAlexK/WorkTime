@@ -129,18 +129,18 @@ onBeforeUnmount(() => {
         <div class="flex justify-center flex-col items-center">
             <time class="text-3xl font-semibold pt-8" datetime="">{{ currentWorkingTime }}</time>
             <div class="flex gap-4 pt-4">
-                <ButtonComponent @action="startWork" :outlined="false" label="Start" :disabled="isRunning">
+                <ButtonComponent @action="startWork" label="Start" :disabled="isRunning">
                     <template #icon>
                         <Play class="size-4"></Play>
                     </template>
                 </ButtonComponent>
-                <ButtonComponent @action="pauseWork" :outlined="true" label="Pause" :disabled="!isRunning">
+                <ButtonComponent @action="pauseWork" outlined label="Pause" :disabled="!isRunning">
                     <template #icon>
                         <Pause class="size-4">
                         </Pause>
                     </template>
                 </ButtonComponent>
-                <ButtonComponent @action="endWork" :outlined="true" label="Stop" :disabled="!isRunning">
+                <ButtonComponent @action="endWork" outlined label="Stop" :disabled="!isRunning">
                     <template #icon>
                         <StopCircle class="size-4">
                         </StopCircle>

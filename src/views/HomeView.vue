@@ -32,13 +32,13 @@ const deleteProjectById = async (id: Id<'projects'>) => {
 
 
 
-        <ButtonComponent :outlined="false" :label="'New'">
+        <ButtonComponent :label="'New'">
           <template #icon>
             <PlusCircle class="size-4">
             </PlusCircle>
           </template>
         </ButtonComponent>
-        <ButtonComponent @action="isEditing = !isEditing" :outlined="true" :label="'Edit'">
+        <ButtonComponent @action="isEditing = !isEditing" outlined :label="'Edit'">
           <template #icon>
             <PenBoxIcon class="size-4">
             </PenBoxIcon>
