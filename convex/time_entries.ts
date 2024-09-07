@@ -1,4 +1,5 @@
 import { mutation, query } from './_generated/server'
+import type { DataModel } from './_generated/dataModel'
 import { v } from 'convex/values'
 
 export const startWorkTime = mutation({
@@ -126,5 +127,35 @@ export const getTimeEntryById = query({
       .query('time_entries')
       .filter((q) => q.eq(q.field('_id'), args.id))
       .first()
+  }
+})
+
+export const combineTimeEntries = mutation({
+  args: { ids: v.array(v.id('time_entries')) },
+  handler: async (ctx, args) => {
+    const entries: DataModel['time_entries']['document'][] = []
+
+    for (const id of args.ids) {
+      const entry = await getTimeEntryById(ctx, { id: id })
+      if (!entry) continue
+      entries.push(entry)
+    }
+
+    const startTime = entries.reduce(
+      (min, current) => Math.min(min, new Date(current.start_time).getTime()),
+      Number.MAX_SAFE_INTEGER
+    ) // get min start value
+    const endTime = entries.reduce(
+      (max, current) => Math.max(max, new Date(current.end_time ?? 0).getTime() ?? 0),
+      Number.MIN_SAFE_INTEGER
+    ) // get max end value
+
+    await ctx.db.patch(entries[0]._id, { start_time: startTime, end_time: endTime })
+
+    entries.splice(0, 1) // remove 1 element
+
+    for (const entry of entries) {
+      await deleteTimeEntryById(ctx, { id: entry._id })
+    }
   }
 })
