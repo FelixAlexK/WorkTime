@@ -1,7 +1,13 @@
 <script setup lang="ts">
-import { Play, Pause, StopCircle, LoaderCircle, Timer, Calendar, X } from 'lucide-vue-next';
-defineProps<{ start: string, stop: string, workingtime: string, date: string }>()
+import type { Id } from 'convex/_generated/dataModel';
+import { Play, StopCircle, Timer, Calendar, X, Check } from 'lucide-vue-next';
+import { ref, defineExpose } from 'vue';
+const { combine = false, id, date } = defineProps<{ start: string, stop: string, workingtime: string, date: string, combine: boolean, id: Id<'time_entries'> }>()
 defineEmits(['delete'])
+
+const checkbox = ref<boolean>(false)
+
+defineExpose({ checkbox, id, date })
 </script>
 
 <template>
@@ -38,7 +44,19 @@ defineEmits(['delete'])
             </div>
         </div>
         <div class="flex items-center justify-end " id="printable-content">
-            <button @click="$emit('delete')">
+            <div v-if="combine" class="inline-flex items-center">
+                <label class="flex items-center cursor-pointer relative">
+                    <input v-model="checkbox" type="checkbox"
+                        class="peer h-5 w-5 cursor-pointer transition-all appearance-none rounded border border-black checked:bg-black checked:border-black"
+                        id="check">
+                    <span
+                        class="absolute text-white opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                        <Check class="size-4"></Check>
+                    </span>
+                </label>
+
+            </div>
+            <button v-else @click="$emit('delete')">
 
                 <X class="size-4"></X>
             </button>

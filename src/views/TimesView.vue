@@ -5,15 +5,16 @@ import { useConvexQuery, ConvexQuery, useConvexMutation } from "@convex-vue/core
 import type { Id, DataModel } from 'convex/_generated/dataModel.js';
 import TimeCard from '@/components/TimeCard.vue';
 import TimeEntry from '@/components/TimeEntry.vue';
-import { Timer } from 'lucide-vue-next';
 import PageHeader from '@/components/PageHeader.vue';
-import { Printer, Edit, PlusCircle } from 'lucide-vue-next';
+import { Printer, PlusCircle, Combine, Check, Timer, SendHorizonal } from 'lucide-vue-next';
 import ButtonComponent from '../components/ButtonComponent.vue';
 import DrawerComponent from '@/components/DrawerComponent.vue';
 
 const props = defineProps<{ id: string, project: string }>()
 
 const isEditing = ref(false)
+const isCombining = ref(false)
+const timeEntry = ref<{ checkbox: boolean, id: Id<'time_entries'>, date: string }[]>([])
 const runningWorkingTime = ref<DataModel['time_entries']['document']>()
 const openDrawer = ref(false)
 const startTime = ref<string | undefined>(undefined)
@@ -23,6 +24,7 @@ const endDate = ref<string | undefined>(undefined)
 
 const deleteTimeEntry = useConvexMutation(api.time_entries.deleteTimeEntryById)
 const insertWorkingTime = useConvexMutation(api.time_entries.createWorkingTime)
+const combineWorkingTime = useConvexMutation(api.time_entries.combineTimeEntries)
 const getRunningTimeEntry = useConvexQuery(api.time_entries.getRunningTimeEntryByProjectId, { project_id: props.id as Id<'projects'> })
 
 const getLocalTimeString = (timestamp: number) => {
@@ -97,6 +99,40 @@ const createWorkingTime = () => {
     endTime.value = undefined
 }
 
+
+const combineEntries = (): void => {
+    const checkedEntries = timeEntry.value.filter(item => item.checkbox)
+    if (checkedEntries.length <= 1) {
+        alert('No or not enough entries selected');
+        timeEntry.value.map((f) => f.checkbox = false)
+        isCombining.value = !isCombining.value;
+        return;
+    }
+
+    if (!allDatesEqual(timeEntry.value.map(entry => entry.date))) {
+        alert('Dates have not the same start date');
+        timeEntry.value.map((f) => f.checkbox = false)
+        isCombining.value = !isCombining.value;
+        return;
+    }
+
+    const checkedIds = checkedEntries.map(item => item.id);
+    combineWorkingTime.mutate({ ids: checkedIds });
+    isCombining.value = !isCombining.value;
+    timeEntry.value.map((f) => f.checkbox = false)
+};
+
+function allDatesEqual(arr: string[]) {
+    if (arr.length === 0) return true; // Empty array is considered equal
+
+    const firstDate = new Date(arr[0]).setHours(0, 0, 0, 0); // Normalize to start of day
+
+    return arr.every(item => {
+        const itemDate = new Date(item).setHours(0, 0, 0, 0);
+        return itemDate === firstDate;
+    });
+}
+
 onMounted(() => {
     runningWorkingTime.value = getRunningTimeEntry.data.value ?? undefined
 })
@@ -105,7 +141,7 @@ onMounted(() => {
 
 <template>
     <div>
-        <Teleport :to="'body'">
+        <Teleport defer :to="'body'">
             <DrawerComponent :label="'Set Working Time'" @close-drawer="openDrawer = false" :is-open="openDrawer">
                 <template #content>
                     <form @submit.prevent="createWorkingTime" class="gap-4 flex flex-col">
@@ -127,8 +163,9 @@ onMounted(() => {
                             </div>
                         </div>
                         <ButtonComponent :type="'submit'" :label="'Submit'">
-                            <template #icon>
-                                <Plus></Plus>
+                            <template #suffix>
+                                <SendHorizonal class="size-4">
+                                </SendHorizonal>
                             </template>
                         </ButtonComponent>
                     </form>
@@ -142,18 +179,13 @@ onMounted(() => {
             <PageHeader @return="$router.push('/')" :label="project">
                 <template #action>
                     <ButtonComponent @action="print" outlined :label="'Print'">
-                        <template #icon>
+                        <template #prefix>
                             <Printer class="size-4">
                             </Printer>
                         </template>
                     </ButtonComponent>
 
-                    <ButtonComponent outlined :label="'Edit'">
-                        <template #icon>
-                            <Edit class="size-4">
-                            </Edit>
-                        </template>
-                    </ButtonComponent>
+
                 </template>
             </PageHeader>
 
@@ -176,7 +208,7 @@ onMounted(() => {
                                         <Timer class="size-4"></Timer>
                                         <time class="underline" :datetime="getWorktime(workingTime)">{{
                                             getWorktime(workingTime)
-                                            }}</time>
+                                        }}</time>
 
                                     </div>
 
@@ -184,12 +216,27 @@ onMounted(() => {
                             </ConvexQuery>
                         </div>
 
-                        <ButtonComponent @action="openDrawer = !openDrawer" label="New">
-                            <template #icon>
-                                <PlusCircle class="size-4">
-                                </PlusCircle>
-                            </template>
-                        </ButtonComponent>
+                        <div class="flex flex-row gap-4">
+
+                            <ButtonComponent @action="openDrawer = !openDrawer" label="New">
+                                <template #prefix>
+                                    <PlusCircle class="size-4">
+                                    </PlusCircle>
+                                </template>
+                            </ButtonComponent>
+                            <ButtonComponent v-if="isCombining" @action="combineEntries()" :label="'Confirm'">
+                                <template #prefix>
+                                    <Check class="size-4">
+                                    </Check>
+                                </template>
+                            </ButtonComponent>
+                            <ButtonComponent v-else @action="isCombining = !isCombining" outlined :label="'Combine'">
+                                <template #prefix>
+                                    <Combine class="size-4">
+                                    </Combine>
+                                </template>
+                            </ButtonComponent>
+                        </div>
 
                     </div>
                     <ConvexQuery :query="api.time_entries.getTimeEntriesByProjectId"
@@ -203,18 +250,24 @@ onMounted(() => {
 
 
                             <div v-for="entry in entries" :key="entry._id" id="printable-content">
-                                <TimeEntry @delete="deleteTimeEntryById(entry._id)"
+                                <TimeEntry :id="entry._id" ref="timeEntry" :combine="isCombining"
+                                    @delete="deleteTimeEntryById(entry._id)"
                                     :start="getLocalTimeString(entry.start_time)" :stop="entry.end_time ?
                                         getLocalTimeString(entry.end_time ?? 0) :
                                         '--:--'" :workingtime="entry.end_time ?
                                             getWorktime(entry.end_time - entry.start_time) :
-                                            '--:--'" :date="getLocalDateString(entry.start_time)"></TimeEntry>
+                                            '--:--'" :date="getLocalDateString(entry.start_time)">
+
+                                </TimeEntry>
                             </div>
+
+
 
 
                         </template>
                     </ConvexQuery>
                 </div>
+
 
             </div>
         </div>

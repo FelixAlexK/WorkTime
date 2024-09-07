@@ -21,7 +21,7 @@ defineEmits(['open', 'delete'])
                 <X class="size-4"></X>
             </button>
             <ButtonComponent v-else @action="$emit('open')" :label="'Open'">
-                <template #icon>
+                <template #prefix>
                     <SquareArrowOutUpRight class="size-4"></SquareArrowOutUpRight>
                 </template>
             </ButtonComponent>
