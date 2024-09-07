@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 
-import { ref, watch } from 'vue';
+import { ref, watch, watchEffect } from 'vue';
 import { api } from '../../convex/_generated/api.js';
 import { useConvexQuery, ConvexQuery, useConvexMutation } from "@convex-vue/core";
 import type { Id } from 'convex/_generated/dataModel.js';
@@ -13,10 +13,12 @@ import DrawerComponent from '@/components/DrawerComponent.vue';
 
 const projectName = ref<string | undefined>(undefined)
 const projectDescription = ref<string | undefined>(undefined)
+const searchInput = ref('')
 const openDrawer = ref(false)
 
 const { mutate } = useConvexMutation(api.projects.deleteProject)
 const insertNewProject = useConvexMutation(api.projects.createProject)
+const searchProject = useConvexQuery(api.projects.searchProjectByName, { name: searchInput.value })
 
 const isEditing = ref(false)
 
@@ -36,6 +38,12 @@ const createNewProject = () => {
   projectName.value = undefined
   projectDescription.value = undefined
 }
+
+watchEffect(() => {
+  if (searchInput.value.trim() !== '') {
+    searchInput.value
+  }
+})
 </script>
 
 <template>
@@ -55,10 +63,7 @@ const createNewProject = () => {
             </div>
 
             <ButtonComponent :type="'submit'" :label="'Submit'">
-              <template #prefix>
-                <PlusCircle class="size-4">
-                </PlusCircle>
-              </template>
+
             </ButtonComponent>
           </form>
         </template>
@@ -71,22 +76,28 @@ const createNewProject = () => {
 
 
       <PageHeader label="Projects">
+        <template #search>
+
+          <input placeholder="search project" v-model="searchInput" class="outline outline-1 px-2 py-1 rounded w-full"
+            type="search" name="" id="">
+        </template>
         <template #action>
 
 
 
           <ButtonComponent @action="openDrawer = !openDrawer" :label="'New'">
-            <template #icon>
+            <template #prefix>
               <PlusCircle class="size-4">
               </PlusCircle>
             </template>
           </ButtonComponent>
           <ButtonComponent @action="isEditing = !isEditing" outlined :label="'Edit'">
-            <template #icon>
+            <template #prefix>
               <PenBoxIcon class="size-4">
               </PenBoxIcon>
             </template>
           </ButtonComponent>
+
 
 
 
@@ -96,10 +107,24 @@ const createNewProject = () => {
 
       <div v-auto-animate class=" h-full overflow-auto w-full flex gap-4 flex-col items-start p-8">
 
-        <ConvexQuery :query="api.projects.getProjects" :args="{}">
+        <ConvexQuery :query="api.projects.searchProjectByName" :args="{ name: searchInput }">
           <template #loading>Loading...</template>
           <template #error="{ error }">{{ error }}</template>
-          <template #empty>No Projects yet.</template>
+          <template #empty>
+            <ConvexQuery :query="api.projects.getProjects" :args="{}">
+              <template #loading>Loading...</template>
+              <template #error="{ error }">{{ error }}</template>
+              <template #empty>No Projects yet.</template>
+              <template #default="{ data: projects }">
+                <div class="w-full" v-for="project in projects" :key="project._id">
+                  <ProjectItem :edit="isEditing" :name="project.name" :date="new
+                    Date(project._creationTime).toLocaleDateString()"
+                    @open="$router.push({ name: 'times', params: { id: project._id, project: project.name } })"
+                    @delete="deleteProjectById(project._id)"></ProjectItem>
+                </div>
+              </template>
+            </ConvexQuery>
+          </template>
           <template #default="{ data: projects }">
             <div class="w-full" v-for="project in projects" :key="project._id">
               <ProjectItem :edit="isEditing" :name="project.name" :date="new

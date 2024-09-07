@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Id } from 'convex/_generated/dataModel';
 import { Play, StopCircle, Timer, Calendar, X, Check } from 'lucide-vue-next';
-import { ref, defineExpose } from 'vue';
+import { ref } from 'vue';
 const { combine = false, id, date } = defineProps<{ start: string, stop: string, workingtime: string, date: string, combine: boolean, id: Id<'time_entries'> }>()
 defineEmits(['delete'])
 
