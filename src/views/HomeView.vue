@@ -1,42 +1,63 @@
 <script setup lang="ts">
-
-
-import { ref, watch, watchEffect } from 'vue';
+import { ref, watchEffect } from 'vue';
 import { api } from '../../convex/_generated/api.js';
-import { useConvexQuery, ConvexQuery, useConvexMutation } from "@convex-vue/core";
+import { ConvexQuery, useConvexMutation } from "@convex-vue/core";
 import type { Id } from 'convex/_generated/dataModel.js';
 import PageHeader from '@/components/PageHeader.vue';
 import ButtonComponent from '@/components/ButtonComponent.vue';
 import { PlusCircle, PenBoxIcon } from 'lucide-vue-next';
 import ProjectItem from '@/components/ProjectItem.vue';
 import DrawerComponent from '@/components/DrawerComponent.vue';
+import ErrorAlert from '@/components/ErrorAlert.vue';
 
 const projectName = ref<string | undefined>(undefined)
 const projectDescription = ref<string | undefined>(undefined)
 const searchInput = ref('')
 const openDrawer = ref(false)
-
-const { mutate } = useConvexMutation(api.projects.deleteProject)
-const insertNewProject = useConvexMutation(api.projects.createProject)
-const searchProject = useConvexQuery(api.projects.searchProjectByName, { name: searchInput.value })
-
+const showAlert = ref(false)
+const errorMessage = ref('')
 const isEditing = ref(false)
+
+const deleteProject = useConvexMutation(api.projects.deleteProject)
+const insertNewProject = useConvexMutation(api.projects.createProject)
 
 const deleteProjectById = async (id: Id<'projects'>) => {
 
-  if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-    isEditing.value = false
-    return
+  try {
+    if (!confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+      isEditing.value = false
+      return
+    }
+    await deleteProject.mutate({ id: id })
+    if (deleteProject.error.value) {
+      errorMessage.value = 'Error while deleting project'
+      showAlert.value = true
+    }
+  } catch (error) {
+    throw new Error('Error while deleting project')
   }
-  await mutate({ id: id })
+
+
+
 }
 
-const createNewProject = () => {
-  if (!projectName.value) return
-  insertNewProject.mutate({ name: projectName.value, description: projectDescription.value })
-  openDrawer.value = false
-  projectName.value = undefined
-  projectDescription.value = undefined
+const createNewProject = async () => {
+  try {
+    if (!projectName.value) return
+    await insertNewProject.mutate({ name: projectName.value, description: projectDescription.value })
+    if (insertNewProject.error.value) {
+      errorMessage.value = 'Error while creating project'
+      showAlert.value = true
+    }
+
+  } catch (error) {
+    throw new Error('Error while creating project')
+  } finally {
+    openDrawer.value = false
+    projectName.value = undefined
+    projectDescription.value = undefined
+  }
+
 }
 
 watchEffect(() => {
@@ -50,6 +71,7 @@ watchEffect(() => {
   <div>
 
     <Teleport to="body">
+      <ErrorAlert @dismiss="showAlert = false" :show="showAlert" :message="errorMessage"></ErrorAlert>
       <DrawerComponent :label="'Set Project'" @close-drawer="openDrawer = false" :is-open="openDrawer">
         <template #content>
           <form @submit.prevent="createNewProject" class="gap-4 flex flex-col">
@@ -83,14 +105,13 @@ watchEffect(() => {
         </template>
         <template #action>
 
-
-
           <ButtonComponent @action="openDrawer = !openDrawer" :label="'New'">
             <template #prefix>
               <PlusCircle class="size-4">
               </PlusCircle>
             </template>
           </ButtonComponent>
+
           <ButtonComponent @action="isEditing = !isEditing" outlined :label="'Edit'">
             <template #prefix>
               <PenBoxIcon class="size-4">

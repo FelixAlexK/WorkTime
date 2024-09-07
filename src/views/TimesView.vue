@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, Teleport } from 'vue';
+import { onMounted, ref } from 'vue';
 import { api } from '../../convex/_generated/api.js';
 import { useConvexQuery, ConvexQuery, useConvexMutation } from "@convex-vue/core";
 import type { Id, DataModel } from 'convex/_generated/dataModel.js';
@@ -9,6 +9,8 @@ import PageHeader from '@/components/PageHeader.vue';
 import { Printer, PlusCircle, Combine, Check, Timer, SendHorizonal } from 'lucide-vue-next';
 import ButtonComponent from '../components/ButtonComponent.vue';
 import DrawerComponent from '@/components/DrawerComponent.vue';
+import ErrorAlert from '@/components/ErrorAlert.vue';
+import { allDatesEqual, checkIfDateIsInFuture, convertToTimestamp, getWorktime, getLocalDateString, getLocalTimeString } from '@/utils/index.js';
 
 const props = defineProps<{ id: string, project: string }>()
 
@@ -21,43 +23,30 @@ const startTime = ref<string | undefined>(undefined)
 const startDate = ref<string | undefined>(undefined)
 const endTime = ref<string | undefined>(undefined)
 const endDate = ref<string | undefined>(undefined)
+const showAlert = ref(false)
+const errorMessage = ref('')
 
 const deleteTimeEntry = useConvexMutation(api.time_entries.deleteTimeEntryById)
 const insertWorkingTime = useConvexMutation(api.time_entries.createWorkingTime)
 const combineWorkingTime = useConvexMutation(api.time_entries.combineTimeEntries)
 const getRunningTimeEntry = useConvexQuery(api.time_entries.getRunningTimeEntryByProjectId, { project_id: props.id as Id<'projects'> })
 
-const getLocalTimeString = (timestamp: number) => {
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString(undefined, { minute: '2-digit', hour: '2-digit' })
-}
 
-const getLocalDateString = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString()
-}
 
 const deleteTimeEntryById = async (id: Id<'time_entries'>) => {
-    if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) return
-    await deleteTimeEntry.mutate({ id: id })
+    try {
+        if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) return
+        await deleteTimeEntry.mutate({ id: id })
+        if (deleteTimeEntry.error.value) {
+            errorMessage.value = 'Error while deleting time entry'
+            showAlert.value = true
+        }
+    } catch (error) {
+        throw new Error('Error while deleting time entry')
+    }
+
 }
 
-
-
-const getWorktime = (timeInMs: number) => {
-    // Convert milliseconds to seconds
-    const totalSeconds = Math.floor(timeInMs / 1000);
-
-    // Extract hours, minutes, and seconds
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-    // Format components to two digits
-    const formattedHours = String(hours).padStart(2, '0');
-    const formattedMinutes = String(minutes).padStart(2, '0');
-
-    // Return formatted string
-    return `${formattedHours}:${formattedMinutes}`;
-}
 
 
 const print = () => {
@@ -65,73 +54,78 @@ const print = () => {
     window.print()
 }
 
-const convertToTimestamp = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.getTime()
-}
+const createWorkingTime = async () => {
 
-const checkIfDateIsInFuture = (date: Date) => {
-    const currentDate = new Date()
-    if (date > currentDate) return true
-    return false
-}
+    try {
+        if (!startDate.value || !endDate.value) return
 
-const createWorkingTime = () => {
+        startTime.value ? startTime.value : startTime.value = new Date().toLocaleTimeString()
+        endTime.value ? endTime.value : endTime.value = new Date().toLocaleTimeString()
 
-    if (!startDate.value || !endDate.value) return
+        const dateStart = new Date(startDate.value)
+        const dateEnd = new Date(endDate.value)
 
-    startTime.value ? startTime.value : startTime.value = new Date().toLocaleTimeString()
-    endTime.value ? endTime.value : endTime.value = new Date().toLocaleTimeString()
+        if (checkIfDateIsInFuture(dateStart) || checkIfDateIsInFuture(dateEnd)) {
+            alert('Start or End date cant be in the future')
+            return
+        }
 
-    const dateStart = new Date(startDate.value)
-    const dateEnd = new Date(endDate.value)
-    if (checkIfDateIsInFuture(dateStart) || checkIfDateIsInFuture(dateEnd)) {
-        alert('Start or End date cant be in the future')
-        return
+        const startString = `${startDate.value} ${startTime.value}`
+        const endString = `${endDate.value} ${endTime.value}`
+
+        await insertWorkingTime.mutate({ project_id: props.id as Id<'projects'>, start_time: convertToTimestamp(startString), end_time: convertToTimestamp(endString) })
+        if (insertWorkingTime.error.value) {
+            errorMessage.value = 'Error while creating time entry'
+            showAlert.value = true
+        }
+    } catch (error) {
+        throw new Error('Error while creating time entry')
+    } finally {
+        openDrawer.value = false
+        startDate.value = undefined
+        endDate.value = undefined
+        startTime.value = undefined
+        endTime.value = undefined
     }
-    const startString = `${startDate.value} ${startTime.value}`
-    const endString = `${endDate.value} ${endTime.value}`
-    insertWorkingTime.mutate({ project_id: props.id as Id<'projects'>, start_time: convertToTimestamp(startString), end_time: convertToTimestamp(endString) })
-    openDrawer.value = false
-    startDate.value = undefined
-    endDate.value = undefined
-    startTime.value = undefined
-    endTime.value = undefined
+
+
 }
 
 
 const combineEntries = (): void => {
-    const checkedEntries = timeEntry.value.filter(item => item.checkbox)
-    if (checkedEntries.length <= 1) {
-        alert('No or not enough entries selected');
-        timeEntry.value.map((f) => f.checkbox = false)
+    try {
+        const checkedEntries = timeEntry.value.filter(item => item.checkbox)
+        if (checkedEntries.length <= 1) {
+            alert('No or not enough entries selected');
+            timeEntry.value.map((f) => f.checkbox = false)
+            isCombining.value = !isCombining.value;
+            return;
+        }
+
+        if (!allDatesEqual(timeEntry.value.map(entry => entry.date))) {
+            alert('Dates have not the same start date');
+            timeEntry.value.map((f) => f.checkbox = false)
+            isCombining.value = !isCombining.value;
+            return;
+        }
+
+        const checkedIds = checkedEntries.map(item => item.id);
+        combineWorkingTime.mutate({ ids: checkedIds });
+        if (combineWorkingTime.error.value) {
+            errorMessage.value = 'Error while combining time entries'
+            showAlert.value = true
+        }
+
+    } catch (error) {
+        throw new Error('Error while combining time entries')
+    } finally {
         isCombining.value = !isCombining.value;
-        return;
+        timeEntry.value.map((f) => f.checkbox = false)
     }
 
-    if (!allDatesEqual(timeEntry.value.map(entry => entry.date))) {
-        alert('Dates have not the same start date');
-        timeEntry.value.map((f) => f.checkbox = false)
-        isCombining.value = !isCombining.value;
-        return;
-    }
-
-    const checkedIds = checkedEntries.map(item => item.id);
-    combineWorkingTime.mutate({ ids: checkedIds });
-    isCombining.value = !isCombining.value;
-    timeEntry.value.map((f) => f.checkbox = false)
 };
 
-function allDatesEqual(arr: string[]) {
-    if (arr.length === 0) return true; // Empty array is considered equal
 
-    const firstDate = new Date(arr[0]).setHours(0, 0, 0, 0); // Normalize to start of day
-
-    return arr.every(item => {
-        const itemDate = new Date(item).setHours(0, 0, 0, 0);
-        return itemDate === firstDate;
-    });
-}
 
 onMounted(() => {
     runningWorkingTime.value = getRunningTimeEntry.data.value ?? undefined
@@ -142,6 +136,7 @@ onMounted(() => {
 <template>
     <div>
         <Teleport defer :to="'body'">
+            <ErrorAlert @dismiss="showAlert = false" :show="showAlert" :message="errorMessage"></ErrorAlert>
             <DrawerComponent :label="'Set Working Time'" @close-drawer="openDrawer = false" :is-open="openDrawer">
                 <template #content>
                     <form @submit.prevent="createWorkingTime" class="gap-4 flex flex-col">

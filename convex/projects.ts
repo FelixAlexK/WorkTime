@@ -1,45 +1,61 @@
 import { mutation, query } from './_generated/server'
-import { v } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { deleteTimeEntryById, getTimeEntriesByProjectId } from './time_entries'
 
 export const createProject = mutation({
   args: { description: v.optional(v.string()), name: v.string() },
   handler: async (ctx, args) => {
-    await ctx.db.insert('projects', {
-      description: args.description,
-      name: args.name
-    })
+    try {
+      await ctx.db.insert('projects', {
+        description: args.description,
+        name: args.name
+      })
+    } catch (error) {
+      throw new ConvexError(`Error while creating project: ${error}`)
+    }
   }
 })
 
 export const deleteProject = mutation({
   args: { id: v.id('projects') },
   handler: async (ctx, args) => {
-    const entries = await getTimeEntriesByProjectId(ctx, { project_id: args.id })
+    try {
+      const entries = await getTimeEntriesByProjectId(ctx, { project_id: args.id })
 
-    if (entries.length > 0) {
-      for (const entry of entries) {
-        await deleteTimeEntryById(ctx, { id: entry._id })
+      if (entries.length > 0) {
+        for (const entry of entries) {
+          await deleteTimeEntryById(ctx, { id: entry._id })
+        }
       }
-    }
 
-    await ctx.db.delete(args.id)
+      await ctx.db.delete(args.id)
+    } catch (error) {
+      throw new ConvexError(`Error while deleting project: ${error}`)
+    }
   }
 })
 
 export const getProjects = query({
   args: {},
-  handler: async (ctx, args) => {
-    return await ctx.db.query('projects').order('desc').collect()
+  handler: async (ctx) => {
+    try {
+      return await ctx.db.query('projects').order('desc').collect()
+    } catch (error) {
+      throw new ConvexError(`Error while retrieving projects: ${error}`)
+    }
   }
 })
 
 export const searchProjectByName = query({
   args: { name: v.string() },
   async handler(ctx, args) {
-    return await ctx.db
-      .query('projects')
-      .withSearchIndex('search_name', (q) => q.search('name', args.name))
-      .take(5)
+    try {
+      return await ctx.db
+        .query('projects')
+        .withSearchIndex('search_name', (q) => q.search('name', args.name))
+        .take(5)
+    } catch (error) {
+      throw new ConvexError(`Error while searching project: ${error}`)
+    }
   }
 })
