@@ -125,13 +125,13 @@ onBeforeUnmount(() => {
             <time class="text-3xl font-semibold pt-8" datetime="">{{ currentWorkingTime }}</time>
             <div class="flex gap-4 pt-4">
                 <ButtonComponent @action="startWork" label="Start" :disabled="isRunning">
-                    <template #icon>
+                    <template #prefix>
                         <Play class="size-4"></Play>
                     </template>
                 </ButtonComponent>
 
                 <ButtonComponent @action="endWork" outlined label="Stop" :disabled="!isRunning">
-                    <template #icon>
+                    <template #prefix>
                         <StopCircle class="size-4">
                         </StopCircle>
                     </template>

@@ -55,7 +55,7 @@ const createNewProject = () => {
             </div>
 
             <ButtonComponent :type="'submit'" :label="'Submit'">
-              <template #icon>
+              <template #prefix>
                 <PlusCircle class="size-4">
                 </PlusCircle>
               </template>
