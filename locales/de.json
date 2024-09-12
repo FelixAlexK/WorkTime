@@ -1,0 +1,56 @@
+{
+  "settings": {
+    "title": "Einstellungen",
+    "language": "Sprache",
+    "options": {
+      "placeholder": "Wählen Sie eine Sprache",
+      "de": "de-DE",
+      "en": "en-US"
+    }
+  },
+  "project": {
+    "title": "Projekte",
+    "actions": {
+      "new": "Neu",
+      "edit": "Bearbeiten",
+      "settings": "Einstellungen",
+      "open": "Öffnen"
+    },
+    "search": {
+      "placeholder": "Projekt suchen"
+    },
+    "create": {
+      "label": "Projekt erstellen",
+      "input": {
+        "name": "Name",
+        "description": "Beschreibung"
+      },
+      "submit": "einreichen"
+    }
+  },
+  "time": {
+    "title": "{title}",
+    "recent": {
+      "title": "Letzte Aufgaben"
+    },
+    "tracker": {
+      "title": "Zeiterfassung",
+      "actions": {
+        "start": "Start",
+        "stop": "Stopp"
+      }
+    },
+    "actions": {
+      "new": "neu",
+      "combine": "kombinieren",
+      "confirm": "bestätigen",
+      "print": "drucken"
+    },
+    "create": {
+      "title": "Neue Arbeitszeit",
+      "start": "Start",
+      "stop": "Stopp",
+      "submit": "einreichen"
+    }
+  }
+}

@@ -2,7 +2,10 @@
 import type { Id } from 'convex/_generated/dataModel';
 import { Play, StopCircle, Timer, Calendar, X, Check } from 'lucide-vue-next';
 import { ref } from 'vue';
-const { combine = false, id, date } = defineProps<{ start: string, stop: string, workingtime: string, date: string, combine: boolean, id: Id<'time_entries'> }>()
+import { useI18n } from 'vue-i18n'
+
+const { d } = useI18n()
+const { combine = false, id, date } = defineProps<{ start: string, stop: string, workingtime: string, date: number, combine: boolean, id: Id<'time_entries'> }>()
 defineEmits(['delete'])
 
 const checkbox = ref<boolean>(false)
@@ -15,7 +18,7 @@ defineExpose({ checkbox, id, date })
         <div class="flex flex-row items-center justify-start gap-2 w-full">
             <Calendar class="size-4"></Calendar>
             <time datetime="" class=" text-nowrap">
-                {{ date }}
+                {{ d(new Date(date), 'short') }}
             </time>
         </div>
         <div class="flex flex-col md:flex-row md:gap-4 justify-center md:w-fit md:pr-8 w-full">

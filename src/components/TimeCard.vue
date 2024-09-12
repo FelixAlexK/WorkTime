@@ -5,6 +5,9 @@ import type { Id } from 'convex/_generated/dataModel';
 import { api } from '../../convex/_generated/api';
 import { onBeforeUnmount, onMounted, ref, watchEffect } from 'vue';
 import ButtonComponent from './ButtonComponent.vue';
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{ projectId: Id<'projects'> }>();
 
@@ -118,19 +121,20 @@ onBeforeUnmount(() => {
 <template>
     <div class="w-full h-fit border border-gray-200 rounded shadow p-4">
         <div class="flex flex-row w-full justify-between items-center">
-            <h1 class="font-semibold text-xl">Time Tracker</h1>
+            <h1 class="font-semibold text-xl">{{ t('time.tracker.title') }}</h1>
 
         </div>
         <div class="flex justify-center flex-col items-center">
             <time class="text-3xl font-semibold pt-8" datetime="">{{ currentWorkingTime }}</time>
             <div class="flex gap-4 pt-4">
-                <ButtonComponent @action="startWork" label="Start" :disabled="isRunning">
+                <ButtonComponent @action="startWork" :label="t('time.tracker.actions.start')" :disabled="isRunning">
                     <template #prefix>
                         <Play class="size-4"></Play>
                     </template>
                 </ButtonComponent>
 
-                <ButtonComponent @action="endWork" outlined label="Stop" :disabled="!isRunning">
+                <ButtonComponent @action="endWork" outlined :label="t('time.tracker.actions.stop')"
+                    :disabled="!isRunning">
                     <template #prefix>
                         <StopCircle class="size-4">
                         </StopCircle>
