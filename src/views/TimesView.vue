@@ -10,12 +10,7 @@ import { Printer, PlusCircle, Combine, Check, Timer, SendHorizonal } from 'lucid
 import ButtonComponent from '../components/ButtonComponent.vue';
 import DrawerComponent from '@/components/DrawerComponent.vue';
 import ErrorAlert from '@/components/ErrorAlert.vue';
-import { allDatesEqual, checkIfDateIsInFuture, convertToTimestamp, getWorktime, getLocalTimeString } from '@/utils/index.js';
-import VueDatePicker from '@vuepic/vue-datepicker';
-import '@vuepic/vue-datepicker/dist/main.css'
-import { useI18n } from 'vue-i18n'
-
-const { t } = useI18n()
+import { allDatesEqual, checkIfDateIsInFuture, convertToTimestamp, getWorktime, getLocalDateString, getLocalTimeString } from '@/utils/index.js';
 
 const props = defineProps<{ id: string, project: string }>()
 
