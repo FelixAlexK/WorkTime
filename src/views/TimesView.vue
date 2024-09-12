@@ -10,7 +10,11 @@ import { Printer, PlusCircle, Combine, Check, Timer, SendHorizonal } from 'lucid
 import ButtonComponent from '../components/ButtonComponent.vue';
 import DrawerComponent from '@/components/DrawerComponent.vue';
 import ErrorAlert from '@/components/ErrorAlert.vue';
-import { allDatesEqual, checkIfDateIsInFuture, convertToTimestamp, getWorktime, getLocalDateString, getLocalTimeString } from '@/utils/index.js';
+import { allDatesEqual, checkIfDateIsInFuture, convertToTimestamp, getWorktime, getLocalTimeString } from '@/utils/index.js';
+
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{ id: string, project: string }>()
 
@@ -19,12 +23,13 @@ const isCombining = ref(false)
 const timeEntry = ref<{ checkbox: boolean, id: Id<'time_entries'>, date: string }[]>([])
 const runningWorkingTime = ref<DataModel['time_entries']['document']>()
 const openDrawer = ref(false)
-const startTime = ref<string | undefined>(undefined)
-const startDate = ref<string | undefined>(undefined)
-const endTime = ref<string | undefined>(undefined)
-const endDate = ref<string | undefined>(undefined)
+
+const startDateTime = ref<string | undefined>(undefined)
+
+const endDateTime = ref<string | undefined>(undefined)
 const showAlert = ref(false)
 const errorMessage = ref('')
+const locale = ref(navigator.language)
 
 const deleteTimeEntry = useConvexMutation(api.time_entries.deleteTimeEntryById)
 const insertWorkingTime = useConvexMutation(api.time_entries.createWorkingTime)
@@ -57,23 +62,18 @@ const print = () => {
 const createWorkingTime = async () => {
 
     try {
-        if (!startDate.value || !endDate.value) return
+        if (!startDateTime.value || !endDateTime.value) return
 
-        startTime.value ? startTime.value : startTime.value = new Date().toLocaleTimeString()
-        endTime.value ? endTime.value : endTime.value = new Date().toLocaleTimeString()
+        const start = new Date(startDateTime.value)
+        const end = new Date(endDateTime.value)
 
-        const dateStart = new Date(startDate.value)
-        const dateEnd = new Date(endDate.value)
-
-        if (checkIfDateIsInFuture(dateStart) || checkIfDateIsInFuture(dateEnd)) {
+        if (checkIfDateIsInFuture(start) || checkIfDateIsInFuture(end)) {
             alert('Start or End date cant be in the future')
             return
         }
 
-        const startString = `${startDate.value} ${startTime.value}`
-        const endString = `${endDate.value} ${endTime.value}`
 
-        await insertWorkingTime.mutate({ project_id: props.id as Id<'projects'>, start_time: convertToTimestamp(startString), end_time: convertToTimestamp(endString) })
+        await insertWorkingTime.mutate({ project_id: props.id as Id<'projects'>, start_time: convertToTimestamp(start.toString()), end_time: convertToTimestamp(end.toString()) })
         if (insertWorkingTime.error.value) {
             errorMessage.value = 'Error while creating time entry'
             showAlert.value = true
@@ -82,10 +82,8 @@ const createWorkingTime = async () => {
         throw new Error('Error while creating time entry')
     } finally {
         openDrawer.value = false
-        startDate.value = undefined
-        endDate.value = undefined
-        startTime.value = undefined
-        endTime.value = undefined
+        startDateTime.value = undefined
+        endDateTime.value = undefined
     }
 
 
@@ -128,6 +126,7 @@ const combineEntries = (): void => {
 
 
 onMounted(() => {
+    console.log(locale.value)
     runningWorkingTime.value = getRunningTimeEntry.data.value ?? undefined
 })
 
@@ -137,27 +136,25 @@ onMounted(() => {
     <div>
         <Teleport defer :to="'body'">
             <ErrorAlert @dismiss="showAlert = false" :show="showAlert" :message="errorMessage"></ErrorAlert>
-            <DrawerComponent :label="'Set Working Time'" @close-drawer="openDrawer = false" :is-open="openDrawer">
+            <DrawerComponent :label="t('time.create.title')" @close-drawer="openDrawer = false" :is-open="openDrawer">
                 <template #content>
                     <form @submit.prevent="createWorkingTime" class="gap-4 flex flex-col">
                         <div class="flex flex-col gap-2 border border-gray-200 rounded shadow p-4">
-                            <label for="start" class="underline underline-offset-2 font-semibold">Start</label>
+                            <label for="start" class="underline underline-offset-2 font-semibold">{{
+                                t('time.create.start') }}</label>
                             <div id="start" class="flex flex-col gap-2 items-start">
-                                <input required v-model="startDate" class="outline outline-1 px-2 py-1 rounded w-full"
-                                    type="date">
-                                <input v-model="startTime" class="outline outline-1 px-2 py-1 rounded w-full"
-                                    type="time">
+                                <VueDatePicker v-model="startDateTime" :locale="locale">
+                                </VueDatePicker>
                             </div>
                         </div>
                         <div class="flex flex-col gap-2 border border-gray-200 rounded shadow p-4">
-                            <label for="start" class="underline underline-offset-2 font-semibold">Stop</label>
+                            <label for="start" class="underline underline-offset-2 font-semibold">{{
+                                t('time.create.stop') }}</label>
                             <div id="start" class="flex flex-col gap-2 items-start">
-                                <input required v-model="endDate" class="outline outline-1 px-2 py-1 rounded w-full"
-                                    type="date">
-                                <input v-model="endTime" class="outline outline-1 px-2 py-1 rounded w-full" type="time">
+                                <VueDatePicker v-model="endDateTime" :locale="locale"></VueDatePicker>
                             </div>
                         </div>
-                        <ButtonComponent :type="'submit'" :label="'Submit'">
+                        <ButtonComponent :type="'submit'" :label="t('time.create.submit')">
                             <template #suffix>
                                 <SendHorizonal class="size-4">
                                 </SendHorizonal>
@@ -171,9 +168,9 @@ onMounted(() => {
 
 
         <div>
-            <PageHeader @return="$router.push('/')" :label="project">
+            <PageHeader @return="$router.push('/')" :label="t('time.title', { title: project })">
                 <template #action>
-                    <ButtonComponent @action="print" outlined :label="'Print'">
+                    <ButtonComponent @action="print" outlined :label="t('time.actions.print')">
                         <template #prefix>
                             <Printer class="size-4">
                             </Printer>
@@ -193,7 +190,7 @@ onMounted(() => {
                     <div class=" flex flex-row items-center justify-between  w-full gap-8">
 
                         <div class="flex flex-row gap-8">
-                            <h1 class="font-semibold text-lg flex text-nowrap">Recent Tasks</h1>
+                            <h1 class="font-semibold text-lg flex text-nowrap">{{ t('time.recent.title') }}</h1>
 
                             <ConvexQuery :query="api.time_entries.getTotalWorkingTimeByProjectId"
                                 :args="{ project_id: id as Id<'projects'> }">
@@ -213,19 +210,21 @@ onMounted(() => {
 
                         <div class="flex flex-row gap-4">
 
-                            <ButtonComponent @action="openDrawer = !openDrawer" label="New">
+                            <ButtonComponent @action="openDrawer = !openDrawer" :label="t('time.actions.new')">
                                 <template #prefix>
                                     <PlusCircle class="size-4">
                                     </PlusCircle>
                                 </template>
                             </ButtonComponent>
-                            <ButtonComponent v-if="isCombining" @action="combineEntries()" :label="'Confirm'">
+                            <ButtonComponent v-if="isCombining" @action="combineEntries()"
+                                :label="t('time.actions.confirm')">
                                 <template #prefix>
                                     <Check class="size-4">
                                     </Check>
                                 </template>
                             </ButtonComponent>
-                            <ButtonComponent v-else @action="isCombining = !isCombining" outlined :label="'Combine'">
+                            <ButtonComponent v-else @action="isCombining = !isCombining" outlined
+                                :label="t('time.actions.combine')">
                                 <template #prefix>
                                     <Combine class="size-4">
                                     </Combine>
@@ -251,7 +250,7 @@ onMounted(() => {
                                         getLocalTimeString(entry.end_time ?? 0) :
                                         '--:--'" :workingtime="entry.end_time ?
                                             getWorktime(entry.end_time - entry.start_time) :
-                                            '--:--'" :date="getLocalDateString(entry.start_time)">
+                                            '--:--'" :date="entry.start_time">
 
                                 </TimeEntry>
                             </div>
@@ -272,7 +271,7 @@ onMounted(() => {
 
 </template>
 
-<style scoped lang="css">
+<style lang="css">
 @media print {
     body * {
         visibility: hidden;
@@ -290,5 +289,9 @@ onMounted(() => {
     }
 
 
+}
+
+.dp__theme_light {
+    --dp-primary-color: #000 !important;
 }
 </style>
