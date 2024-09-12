@@ -15,10 +15,13 @@
   "dependencies": {
     "@convex-vue/core": "^0.0.4",
     "@formkit/auto-animate": "^0.8.2",
+    "@vuepic/vue-datepicker": "^9.0.3",
     "@vueuse/core": "^11.0.3",
     "convex": "^1.15.0",
     "lucide-vue-next": "^0.436.0",
+    "pinia": "^2.2.2",
     "vue": "^3.5.1",
+    "vue-i18n": "10",
     "vue-router": "^4.4.3"
   },
   "devDependencies": {

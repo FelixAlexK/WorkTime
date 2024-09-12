@@ -5,10 +5,13 @@ import { ConvexQuery, useConvexMutation } from "@convex-vue/core";
 import type { Id } from 'convex/_generated/dataModel.js';
 import PageHeader from '@/components/PageHeader.vue';
 import ButtonComponent from '@/components/ButtonComponent.vue';
-import { PlusCircle, PenBoxIcon } from 'lucide-vue-next';
+import { PlusCircle, PenBoxIcon, Settings } from 'lucide-vue-next';
 import ProjectItem from '@/components/ProjectItem.vue';
 import DrawerComponent from '@/components/DrawerComponent.vue';
 import ErrorAlert from '@/components/ErrorAlert.vue';
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const projectName = ref<string | undefined>(undefined)
 const projectDescription = ref<string | undefined>(undefined)
@@ -72,19 +75,19 @@ watchEffect(() => {
 
     <Teleport to="body">
       <ErrorAlert @dismiss="showAlert = false" :show="showAlert" :message="errorMessage"></ErrorAlert>
-      <DrawerComponent :label="'Set Project'" @close-drawer="openDrawer = false" :is-open="openDrawer">
+      <DrawerComponent :label="t('project.create.label')" @close-drawer="openDrawer = false" :is-open="openDrawer">
         <template #content>
           <form @submit.prevent="createNewProject" class="gap-4 flex flex-col">
             <div class="flex flex-col gap-2 border border-gray-200 rounded shadow p-4">
               <div id="start" class="flex flex-col gap-2 items-start">
-                <input placeholder="name" required v-model="projectName"
+                <input :placeholder="t('project.create.input.name')" required v-model="projectName"
                   class="outline outline-1 px-2 py-1 rounded w-full" type="text">
-                <input placeholder="description" v-model="projectDescription"
+                <input :placeholder="t('project.create.input.description')" v-model="projectDescription"
                   class="outline outline-1 px-2 py-1 rounded w-full" type="text">
               </div>
             </div>
 
-            <ButtonComponent :type="'submit'" :label="'Submit'">
+            <ButtonComponent :type="'submit'" :label="t('project.create.submit')">
 
             </ButtonComponent>
           </form>
@@ -97,25 +100,32 @@ watchEffect(() => {
     <div class="flex flex-col h-full">
 
 
-      <PageHeader label="Projects">
+      <PageHeader :label="t('project.title')">
         <template #search>
 
-          <input placeholder="search project" v-model="searchInput" class="outline outline-1 px-2 py-1 rounded w-full"
-            type="search" name="" id="">
+          <input :placeholder="t('project.search.placeholder')" v-model="searchInput"
+            class="outline outline-1 px-2 py-1 rounded w-full" type="search" name="" id="">
         </template>
         <template #action>
 
-          <ButtonComponent @action="openDrawer = !openDrawer" :label="'New'">
+          <ButtonComponent @action="openDrawer = !openDrawer" :label="t('project.actions.new')">
             <template #prefix>
               <PlusCircle class="size-4">
               </PlusCircle>
             </template>
           </ButtonComponent>
 
-          <ButtonComponent @action="isEditing = !isEditing" outlined :label="'Edit'">
+          <ButtonComponent @action="isEditing = !isEditing" outlined :label="t('project.actions.edit')">
             <template #prefix>
               <PenBoxIcon class="size-4">
               </PenBoxIcon>
+            </template>
+          </ButtonComponent>
+
+          <ButtonComponent @action="$router.push({ name: 'settings' })" outlined :label="t('project.actions.settings')">
+            <template #prefix>
+              <Settings class="size-4">
+              </Settings>
             </template>
           </ButtonComponent>
 
@@ -138,8 +148,7 @@ watchEffect(() => {
               <template #empty>No Projects yet.</template>
               <template #default="{ data: projects }">
                 <div class="w-full" v-for="project in projects" :key="project._id">
-                  <ProjectItem :edit="isEditing" :name="project.name" :date="new
-                    Date(project._creationTime).toLocaleDateString()"
+                  <ProjectItem :edit="isEditing" :name="project.name" :date="project._creationTime"
                     @open="$router.push({ name: 'times', params: { id: project._id, project: project.name } })"
                     @delete="deleteProjectById(project._id)"></ProjectItem>
                 </div>
@@ -148,8 +157,7 @@ watchEffect(() => {
           </template>
           <template #default="{ data: projects }">
             <div class="w-full" v-for="project in projects" :key="project._id">
-              <ProjectItem :edit="isEditing" :name="project.name" :date="new
-                Date(project._creationTime).toLocaleDateString()"
+              <ProjectItem :edit="isEditing" :name="project.name" :date="project._creationTime"
                 @open="$router.push({ name: 'times', params: { id: project._id, project: project.name } })"
                 @delete="deleteProjectById(project._id)"></ProjectItem>
             </div>

@@ -1,5 +1,17 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { onMounted, watchEffect } from 'vue';
+import { useLocaleStore } from './stores/i18n'
+
+const { locale } = useI18n()
+const { getLocale, currentLocale } = useLocaleStore()
+
+watchEffect(() => currentLocale)
+
+onMounted(() => {
+  locale.value = getLocale
+})
 </script>
 
 <template>
