@@ -11,8 +11,7 @@ import ButtonComponent from '../components/ButtonComponent.vue';
 import DrawerComponent from '@/components/DrawerComponent.vue';
 import ErrorAlert from '@/components/ErrorAlert.vue';
 import { allDatesEqual, checkIfDateIsInFuture, convertToTimestamp, getWorktime, getLocalTimeString } from '@/utils/index.js';
-import VueDatePicker from '@vuepic/vue-datepicker';
-import '@vuepic/vue-datepicker/dist/main.css'
+
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -201,7 +200,7 @@ onMounted(() => {
                                         <Timer class="size-4"></Timer>
                                         <time class="underline" :datetime="getWorktime(workingTime)">{{
                                             getWorktime(workingTime)
-                                            }}</time>
+                                        }}</time>
 
                                     </div>
 
