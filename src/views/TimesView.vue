@@ -3,59 +3,55 @@ import { onMounted, ref } from 'vue';
 import { api } from '../../convex/_generated/api.js';
 import { useConvexQuery, ConvexQuery, useConvexMutation } from "@convex-vue/core";
 import type { Id, DataModel } from 'convex/_generated/dataModel.js';
+import TimeCard from '@/components/TimeCard.vue';
 import TimeEntry from '@/components/TimeEntry.vue';
-import { RefreshCcw } from 'lucide-vue-next';
+import PageHeader from '@/components/PageHeader.vue';
+import { Printer, PlusCircle, Combine, Check, Timer, SendHorizonal } from 'lucide-vue-next';
+import ButtonComponent from '../components/ButtonComponent.vue';
+import DrawerComponent from '@/components/DrawerComponent.vue';
+import ErrorAlert from '@/components/ErrorAlert.vue';
+import { allDatesEqual, checkIfDateIsInFuture, convertToTimestamp, getWorktime, getLocalTimeString } from '@/utils/index.js';
+
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{ id: string, project: string }>()
 
 const isEditing = ref(false)
-const showCurrentWorkingTime = ref(false)
-const isLoadingCurrentWorkingTime = ref(false)
-const currentWorkingTime = ref('00:00')
+const isCombining = ref(false)
+const timeEntry = ref<{ checkbox: boolean, id: Id<'time_entries'>, date: string }[]>([])
 const runningWorkingTime = ref<DataModel['time_entries']['document']>()
+const openDrawer = ref(false)
 
+const startDateTime = ref<string | undefined>(undefined)
 
-const endWorkTime = useConvexMutation(api.time_entries.endWorkTime)
-const startWorkTime = useConvexMutation(api.time_entries.startWorkTime)
+const endDateTime = ref<string | undefined>(undefined)
+const showAlert = ref(false)
+const errorMessage = ref('')
+const locale = ref(navigator.language)
+
 const deleteTimeEntry = useConvexMutation(api.time_entries.deleteTimeEntryById)
+const insertWorkingTime = useConvexMutation(api.time_entries.createWorkingTime)
+const combineWorkingTime = useConvexMutation(api.time_entries.combineTimeEntries)
 const getRunningTimeEntry = useConvexQuery(api.time_entries.getRunningTimeEntryByProjectId, { project_id: props.id as Id<'projects'> })
 
-const endWorkMutation = async (id: Id<'time_entries'>) => {
-    await endWorkTime.mutate({ id: id })
-    showCurrentWorkingTime.value = false
-}
 
-const startWork = async (id: Id<'projects'>) => {
-    isEditing.value = false
-    const result = await startWorkTime.mutate({ project_id: id })
-    if (!result) {
-        alert('First stop the current working time to start a new one')
+
+const deleteTimeEntryById = async (id: Id<'time_entries'>) => {
+    try {
+        if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) return
+        await deleteTimeEntry.mutate({ id: id })
+        if (deleteTimeEntry.error.value) {
+            errorMessage.value = 'Error while deleting time entry'
+            showAlert.value = true
+        }
+    } catch (error) {
+        throw new Error('Error while deleting time entry')
     }
 
 }
 
-const deleteTimeEntryById = async (id: Id<'time_entries'>) => {
-    if (!confirm('Are you sure you want to delete this item? This action cannot be undone.')) return
-    await deleteTimeEntry.mutate({ id: id })
-}
-
-
-
-const getWorktime = (timeInMs: number) => {
-    // Convert milliseconds to seconds
-    const totalSeconds = Math.floor(timeInMs / 1000);
-
-    // Extract hours, minutes, and seconds
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-    // Format components to two digits
-    const formattedHours = String(hours).padStart(2, '0');
-    const formattedMinutes = String(minutes).padStart(2, '0');
-
-    // Return formatted string
-    return `${formattedHours}:${formattedMinutes}`;
-}
 
 
 const print = () => {
@@ -63,24 +59,74 @@ const print = () => {
     window.print()
 }
 
-const getCurrentWorkingTime = () => {
-    isLoadingCurrentWorkingTime.value = true
-    if (!runningWorkingTime.value?.start_time) return
-    currentWorkingTime.value = getWorktime(Date.now() - runningWorkingTime.value?.start_time)
-    isLoadingCurrentWorkingTime.value = false
+const createWorkingTime = async () => {
 
-}
+    try {
+        if (!startDateTime.value || !endDateTime.value) return
 
-const toggleCurrentWorkingTime = () => {
-    runningWorkingTime.value = getRunningTimeEntry.data.value ?? undefined
-    if (!runningWorkingTime.value) {
-        alert('no running working time')
-        return
+        const start = new Date(startDateTime.value)
+        const end = new Date(endDateTime.value)
+
+        if (checkIfDateIsInFuture(start) || checkIfDateIsInFuture(end)) {
+            alert('Start or End date cant be in the future')
+            return
+        }
+
+
+        await insertWorkingTime.mutate({ project_id: props.id as Id<'projects'>, start_time: convertToTimestamp(start.toString()), end_time: convertToTimestamp(end.toString()) })
+        if (insertWorkingTime.error.value) {
+            errorMessage.value = 'Error while creating time entry'
+            showAlert.value = true
+        }
+    } catch (error) {
+        throw new Error('Error while creating time entry')
+    } finally {
+        openDrawer.value = false
+        startDateTime.value = undefined
+        endDateTime.value = undefined
     }
-    showCurrentWorkingTime.value = !showCurrentWorkingTime.value
+
+
 }
+
+
+const combineEntries = (): void => {
+    try {
+        const checkedEntries = timeEntry.value.filter(item => item.checkbox)
+        if (checkedEntries.length <= 1) {
+            alert('No or not enough entries selected');
+            timeEntry.value.map((f) => f.checkbox = false)
+            isCombining.value = !isCombining.value;
+            return;
+        }
+
+        if (!allDatesEqual(timeEntry.value.map(entry => entry.date))) {
+            alert('Dates have not the same start date');
+            timeEntry.value.map((f) => f.checkbox = false)
+            isCombining.value = !isCombining.value;
+            return;
+        }
+
+        const checkedIds = checkedEntries.map(item => item.id);
+        combineWorkingTime.mutate({ ids: checkedIds });
+        if (combineWorkingTime.error.value) {
+            errorMessage.value = 'Error while combining time entries'
+            showAlert.value = true
+        }
+
+    } catch (error) {
+        throw new Error('Error while combining time entries')
+    } finally {
+        isCombining.value = !isCombining.value;
+        timeEntry.value.map((f) => f.checkbox = false)
+    }
+
+};
+
+
 
 onMounted(() => {
+    console.log(locale.value)
     runningWorkingTime.value = getRunningTimeEntry.data.value ?? undefined
 })
 
@@ -88,78 +134,148 @@ onMounted(() => {
 
 <template>
     <div>
-        <div
-            class="not-printable flex flex-col sm:flex-row h-fit gap-4 p-4 sm:h-16 w-full border-b-2 border-black items-center px-8 justify-between ">
-            <h1 @click="$router.push({ name: 'home' })" class="font-bold text-xl cursor-pointer text-nowrap">{{ project
-                }}</h1>
-            <div class="flex flex-row gap-2">
-                <ConvexQuery :query="api.time_entries.getTotalWorkingTimeByProjectId"
-                    :args="{ project_id: id as Id<'projects'> }">
-
-                    <template #default="{ data: workingTime }">
-                        <h2>total working time:</h2>
-                        <time class="font-semibold" :datetime="getWorktime(workingTime)">{{ getWorktime(workingTime)
-                            }}</time>
-                    </template>
-                </ConvexQuery>
-            </div>
-
-            <div class="flex gap-4">
-                <button @click="startWork(id as Id<'projects'>)"
-                    class="w-16 h-8  rounded-sm bg-blue-600  text-white shadow-lg hover:shadow hover:scale-95">Start</button>
-                <button @click="isEditing = !isEditing"
-                    class="w-16 h-8 disabled:border-gray-400 disabled:text-gray-400 disabled:hover:bg-white disabled:scale-100 disabled:shadow-none  rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Edit</button>
-                <button @click="print"
-                    class="w-16 h-8   rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Print</button>
-                <button @click="toggleCurrentWorkingTime"
-                    class="w-16 h-8    rounded-sm  border-2 border-blue-600  text-blue-600 hover:bg-blue-600 hover:text-white shadow-lg hover:shadow hover:scale-95">Current</button>
-
-            </div>
-
-            <div v-if="showCurrentWorkingTime" class="flex flex-row gap-2 items-center">
-
-                <h2>{{ currentWorkingTime }}</h2>
-                <RefreshCcw v-if="isLoadingCurrentWorkingTime" class="cursor-pointer size-4 animate-spin"></RefreshCcw>
-                <RefreshCcw v-else @click="getCurrentWorkingTime" class="cursor-pointer size-4"></RefreshCcw>
-
-            </div>
-
-        </div>
-        <div class=" h-full overflow-auto w-full flex gap-4 flex-col items-start p-8">
-
-            <ConvexQuery :query="api.time_entries.getTimeEntriesByProjectId"
-                :args="{ project_id: id as Id<'projects'> }">
-                <template #loading>Loading...</template>
-                <template #error="{ error }">{{ error }}</template>
-                <template #empty>No Entries yet.</template>
-                <template #default="{ data: entries }">
-                    <div id="printable-content" class="w-full" v-for="entry in entries" :key="entry._id">
-
-
-                        <TimeEntry @end-work="endWorkMutation(entry._id)" @delete-entry="deleteTimeEntryById(entry._id)"
-                            :creation-time="entry._creationTime" :end-time="entry.end_time" :is-editing="isEditing"
-                            :start-time="entry.start_time">
-                            <template #working-time>
-                                <ConvexQuery :query="api.time_entries.getWorktimeById" :args="{ id: entry._id }">
-                                    <template #default="{ data: worktime }"><time class="font-semibold"
-                                            :datetime="getWorktime(worktime)">{{
-                                                getWorktime(worktime) }}</time></template>
-                                </ConvexQuery>
+        <Teleport defer :to="'body'">
+            <ErrorAlert @dismiss="showAlert = false" :show="showAlert" :message="errorMessage"></ErrorAlert>
+            <DrawerComponent :label="t('time.create.title')" @close-drawer="openDrawer = false" :is-open="openDrawer">
+                <template #content>
+                    <form @submit.prevent="createWorkingTime" class="gap-4 flex flex-col">
+                        <div class="flex flex-col gap-2 border border-gray-200 rounded shadow p-4">
+                            <label for="start" class="underline underline-offset-2 font-semibold">{{
+                                t('time.create.start') }}</label>
+                            <div id="start" class="flex flex-col gap-2 items-start">
+                                <VueDatePicker v-model="startDateTime" :locale="locale">
+                                </VueDatePicker>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2 border border-gray-200 rounded shadow p-4">
+                            <label for="start" class="underline underline-offset-2 font-semibold">{{
+                                t('time.create.stop') }}</label>
+                            <div id="start" class="flex flex-col gap-2 items-start">
+                                <VueDatePicker v-model="endDateTime" :locale="locale"></VueDatePicker>
+                            </div>
+                        </div>
+                        <ButtonComponent :type="'submit'" :label="t('time.create.submit')">
+                            <template #suffix>
+                                <SendHorizonal class="size-4">
+                                </SendHorizonal>
                             </template>
-                        </TimeEntry>
+                        </ButtonComponent>
+                    </form>
+                </template>
+            </DrawerComponent>
+
+        </Teleport>
+
+
+        <div>
+            <PageHeader @return="$router.push('/')" :label="t('time.title', { title: project })">
+                <template #action>
+                    <ButtonComponent @action="print" outlined :label="t('time.actions.print')">
+                        <template #prefix>
+                            <Printer class="size-4">
+                            </Printer>
+                        </template>
+                    </ButtonComponent>
+
+
+                </template>
+            </PageHeader>
+
+            <div class=" p-8 flex flex-col gap-4">
+                <TimeCard class="not-printable" :project-id="id as Id<'projects'>">
+
+                </TimeCard>
+                <div v-auto-animate
+                    class="not-printable w-full h-fit border border-gray-200 rounded shadow p-4 flex flex-col gap-4">
+                    <div class=" flex flex-row items-center justify-between  w-full gap-8">
+
+                        <div class="flex flex-row gap-8">
+                            <h1 class="font-semibold text-lg flex text-nowrap">{{ t('time.recent.title') }}</h1>
+
+                            <ConvexQuery :query="api.time_entries.getTotalWorkingTimeByProjectId"
+                                :args="{ project_id: id as Id<'projects'> }">
+
+                                <template #default="{ data: workingTime }">
+                                    <div class="flex flex-row items-center gap-2  ">
+                                        <Timer class="size-4"></Timer>
+                                        <time class="underline" :datetime="getWorktime(workingTime)">{{
+                                            getWorktime(workingTime)
+                                        }}</time>
+
+                                    </div>
+
+                                </template>
+                            </ConvexQuery>
+                        </div>
+
+                        <div class="flex flex-row gap-4">
+
+                            <ButtonComponent @action="openDrawer = !openDrawer" :label="t('time.actions.new')">
+                                <template #prefix>
+                                    <PlusCircle class="size-4">
+                                    </PlusCircle>
+                                </template>
+                            </ButtonComponent>
+                            <ButtonComponent v-if="isCombining" @action="combineEntries()"
+                                :label="t('time.actions.confirm')">
+                                <template #prefix>
+                                    <Check class="size-4">
+                                    </Check>
+                                </template>
+                            </ButtonComponent>
+                            <ButtonComponent v-else @action="isCombining = !isCombining" outlined
+                                :label="t('time.actions.combine')">
+                                <template #prefix>
+                                    <Combine class="size-4">
+                                    </Combine>
+                                </template>
+                            </ButtonComponent>
+                        </div>
 
                     </div>
-                </template>
-            </ConvexQuery>
+                    <ConvexQuery :query="api.time_entries.getTimeEntriesByProjectId"
+                        :args="{ project_id: id as Id<'projects'> }">
+
+                        <template #loading>loading...</template>
+                        <template #empty>no recent tasks yet...</template>
+
+                        <template #default="{ data: entries }">
+
+
+
+                            <div v-for="entry in entries" :key="entry._id" id="printable-content">
+                                <TimeEntry :id="entry._id" ref="timeEntry" :combine="isCombining"
+                                    @delete="deleteTimeEntryById(entry._id)"
+                                    :start="getLocalTimeString(entry.start_time)" :stop="entry.end_time ?
+                                        getLocalTimeString(entry.end_time ?? 0) :
+                                        '--:--'" :workingtime="entry.end_time ?
+                                            getWorktime(entry.end_time - entry.start_time) :
+                                            '--:--'" :date="entry.start_time">
+
+                                </TimeEntry>
+                            </div>
+
+
+
+
+                        </template>
+                    </ConvexQuery>
+                </div>
+
+
+            </div>
         </div>
     </div>
 
+
+
 </template>
 
-<style scoped lang="css">
+<style lang="css">
 @media print {
     body * {
         visibility: hidden;
+
     }
 
     .not-printable {
@@ -169,8 +285,13 @@ onMounted(() => {
     #printable-content,
     #printable-content * {
         visibility: visible;
+
     }
 
 
+}
+
+.dp__theme_light {
+    --dp-primary-color: #000 !important;
 }
 </style>
