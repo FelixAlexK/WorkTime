@@ -10,7 +10,7 @@ defineEmits(['open', 'delete'])
 
 <template>
     <div
-        class="w-full min-w-fit px-4 py-2 h-fit border border-gray-200 rounded shadow flex flex-row  items-center justify-between ">
+        class="w-full min-w-fit p-4 h-fit border border-gray-200 rounded shadow flex flex-row  items-center justify-between ">
         <div>
             <time datetime="">{{ d(new Date(date), 'short') }}</time>
         </div>

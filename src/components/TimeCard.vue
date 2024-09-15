@@ -19,7 +19,7 @@ const currentWorkingTime = ref<string>('00:00:00');
 const currentWorkingTimeId = ref<Id<'time_entries'>>();
 const isRunning = ref(false);
 const startTime = ref<number>();
-const timerInterval = ref<number>();
+const timerInterval = ref<NodeJS.Timeout | null>();
 
 // Load state from local storage
 const loadState = () => {
