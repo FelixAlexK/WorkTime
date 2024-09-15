@@ -10,6 +10,7 @@ import ProjectItem from '@/components/ProjectItem.vue';
 import DrawerComponent from '@/components/DrawerComponent.vue';
 import ErrorAlert from '@/components/ErrorAlert.vue';
 import { useI18n } from 'vue-i18n'
+import { SignedIn, ClerkLoaded } from 'vue-clerk'
 
 const { t } = useI18n()
 
@@ -104,7 +105,8 @@ watchEffect(() => {
         <template #search>
 
           <input :placeholder="t('project.search.placeholder')" v-model="searchInput"
-            class="outline outline-1 px-2 py-1 rounded w-full" type="search" name="" id="">
+            class="outline outline-1 px-4 py-2 rounded w-full focus:ring-2 focus:ring-offset-1 focus:ring-black"
+            type="search" name="" id="">
         </template>
         <template #action>
 
@@ -137,32 +139,31 @@ watchEffect(() => {
       </PageHeader>
 
       <div v-auto-animate class=" h-full overflow-auto w-full flex gap-4 flex-col items-start p-8">
-
-        <ConvexQuery :query="api.projects.searchProjectByName" :args="{ name: searchInput }">
-          <template #loading>Loading...</template>
-          <template #error="{ error }">{{ error }}</template>
-          <template #empty>
-            <ConvexQuery :query="api.projects.getProjects" :args="{}">
-              <template #loading>Loading...</template>
-              <template #error="{ error }">{{ error }}</template>
-              <template #empty>No Projects yet.</template>
-              <template #default="{ data: projects }">
+        <SignedIn>
+          <ConvexQuery :query="api.projects.searchProjectByName" :args="{ name: searchInput }">
+            <template #loading>Loading...</template>
+            <template #error="{ error }">
+              <ClerkLoaded>
+                {{ error }}
+              </ClerkLoaded>
+            </template>
+            <template #empty>
+              <ClerkLoaded>
+                No Projects yet.
+              </ClerkLoaded>
+            </template>
+            <template #default="{ data: projects }">
+              <ClerkLoaded>
                 <div class="w-full" v-for="project in projects" :key="project._id">
                   <ProjectItem :edit="isEditing" :name="project.name" :date="project._creationTime"
                     @open="$router.push({ name: 'times', params: { id: project._id, project: project.name } })"
                     @delete="deleteProjectById(project._id)"></ProjectItem>
                 </div>
-              </template>
-            </ConvexQuery>
-          </template>
-          <template #default="{ data: projects }">
-            <div class="w-full" v-for="project in projects" :key="project._id">
-              <ProjectItem :edit="isEditing" :name="project.name" :date="project._creationTime"
-                @open="$router.push({ name: 'times', params: { id: project._id, project: project.name } })"
-                @delete="deleteProjectById(project._id)"></ProjectItem>
-            </div>
-          </template>
-        </ConvexQuery>
+              </ClerkLoaded>
+
+            </template>
+          </ConvexQuery>
+        </SignedIn>
       </div>
     </div>
   </div>
