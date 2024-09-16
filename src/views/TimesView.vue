@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watchEffect } from 'vue';
 import { api } from '../../convex/_generated/api.js';
 import { useConvexQuery, ConvexQuery, useConvexMutation } from "@convex-vue/core";
 import type { Id, DataModel } from 'convex/_generated/dataModel.js';
@@ -12,6 +12,7 @@ import DrawerComponent from '@/components/DrawerComponent.vue';
 import ErrorAlert from '@/components/ErrorAlert.vue';
 import { allDatesEqual, checkIfDateIsInFuture, convertToTimestamp, getWorktime, getLocalTimeString } from '@/utils/index.js';
 import { useI18n } from 'vue-i18n'
+import { watch } from 'fs';
 
 const { t } = useI18n()
 
@@ -95,14 +96,14 @@ const combineEntries = (): void => {
         if (checkedEntries.length <= 1) {
             alert('No or not enough entries selected');
             timeEntry.value.map((f) => f.checkbox = false)
-            isCombining.value = !isCombining.value;
+            isCombining.value = false;
             return;
         }
 
         if (!allDatesEqual(timeEntry.value.map(entry => entry.date))) {
             alert('Dates have not the same start date');
             timeEntry.value.map((f) => f.checkbox = false)
-            isCombining.value = !isCombining.value;
+            isCombining.value = false;
             return;
         }
 
@@ -122,7 +123,7 @@ const combineEntries = (): void => {
 
 };
 
-
+watchEffect(() => isCombining)
 
 onMounted(() => {
     console.log(locale.value)
@@ -217,7 +218,7 @@ onMounted(() => {
                                     </PlusCircle>
                                 </template>
                             </ButtonComponent>
-                            <ButtonComponent v-if="isCombining" @action="combineEntries()"
+                            <ButtonComponent v-if="isCombining" @action="combineEntries(); isCombining = false"
                                 :label="t('time.actions.confirm')">
                                 <template #prefix>
                                     <Check class="size-4">
@@ -250,8 +251,8 @@ onMounted(() => {
                                     :start="getLocalTimeString(entry.start_time)" :stop="entry.end_time ?
                                         getLocalTimeString(entry.end_time ?? 0) :
                                         '--:--'" :workingtime="entry.end_time ?
-                                                getWorktime(entry.end_time - entry.start_time) :
-                                                '--:--'" :date="entry.start_time">
+                                            getWorktime(entry.end_time - entry.start_time) :
+                                            '--:--'" :date="entry.start_time">
 
                                 </TimeEntry>
                             </div>
