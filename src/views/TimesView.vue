@@ -11,8 +11,6 @@ import ButtonComponent from '../components/ButtonComponent.vue';
 import DrawerComponent from '@/components/DrawerComponent.vue';
 import ErrorAlert from '@/components/ErrorAlert.vue';
 import { allDatesEqual, checkIfDateIsInFuture, convertToTimestamp, getWorktime, getLocalTimeString } from '@/utils/index.js';
-import { SignedIn, SignedOut, RedirectToSignIn } from 'vue-clerk'
-
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
@@ -183,94 +181,91 @@ onMounted(() => {
                 </template>
             </PageHeader>
 
-            <SignedIn>
-                <div class=" p-8 flex flex-col gap-4">
-                    <TimeCard class="not-printable" :project-id="id as Id<'projects'>">
 
-                    </TimeCard>
-                    <div v-auto-animate
-                        class="not-printable w-full h-fit border border-gray-200 rounded shadow p-4 flex flex-col gap-4">
-                        <div class=" flex flex-row items-center justify-between  w-full gap-8">
+            <div class=" p-8 flex flex-col gap-4">
+                <TimeCard class="not-printable" :project-id="id as Id<'projects'>">
 
-                            <div class="flex flex-row gap-8">
-                                <h1 class="font-semibold text-lg flex text-nowrap">{{ t('time.recent.title') }}</h1>
+                </TimeCard>
+                <div v-auto-animate
+                    class="not-printable w-full h-fit border border-gray-200 rounded shadow p-4 flex flex-col gap-4">
+                    <div class=" flex flex-row items-center justify-between  w-full gap-8">
 
-                                <ConvexQuery :query="api.time_entries.getTotalWorkingTimeByProjectId"
-                                    :args="{ project_id: id as Id<'projects'> }">
+                        <div class="flex flex-row gap-8">
+                            <h1 class="font-semibold text-lg flex text-nowrap">{{ t('time.recent.title') }}</h1>
 
-                                    <template #default="{ data: workingTime }">
-                                        <div class="flex flex-row items-center gap-2  ">
-                                            <Timer class="size-4"></Timer>
-                                            <time class="underline" :datetime="getWorktime(workingTime)">{{
-                                                getWorktime(workingTime)
-                                            }}</time>
+                            <ConvexQuery :query="api.time_entries.getTotalWorkingTimeByProjectId"
+                                :args="{ project_id: id as Id<'projects'> }">
 
-                                        </div>
+                                <template #default="{ data: workingTime }">
+                                    <div class="flex flex-row items-center gap-2  ">
+                                        <Timer class="size-4"></Timer>
+                                        <time class="underline" :datetime="getWorktime(workingTime)">{{
+                                            getWorktime(workingTime)
+                                        }}</time>
 
-                                    </template>
-                                </ConvexQuery>
-                            </div>
+                                    </div>
 
-                            <div class="flex flex-row gap-4">
-
-                                <ButtonComponent @action="openDrawer = !openDrawer" :label="t('time.actions.new')">
-                                    <template #prefix>
-                                        <PlusCircle class="size-4">
-                                        </PlusCircle>
-                                    </template>
-                                </ButtonComponent>
-                                <ButtonComponent v-if="isCombining" @action="combineEntries()"
-                                    :label="t('time.actions.confirm')">
-                                    <template #prefix>
-                                        <Check class="size-4">
-                                        </Check>
-                                    </template>
-                                </ButtonComponent>
-                                <ButtonComponent v-else @action="isCombining = !isCombining" outlined
-                                    :label="t('time.actions.combine')">
-                                    <template #prefix>
-                                        <Combine class="size-4">
-                                        </Combine>
-                                    </template>
-                                </ButtonComponent>
-                            </div>
-
+                                </template>
+                            </ConvexQuery>
                         </div>
-                        <ConvexQuery :query="api.time_entries.getTimeEntriesByProjectId"
-                            :args="{ project_id: id as Id<'projects'> }">
 
-                            <template #loading>loading...</template>
-                            <template #empty>no recent tasks yet...</template>
+                        <div class="flex flex-row gap-4">
 
-                            <template #default="{ data: entries }">
+                            <ButtonComponent @action="openDrawer = !openDrawer" :label="t('time.actions.new')">
+                                <template #prefix>
+                                    <PlusCircle class="size-4">
+                                    </PlusCircle>
+                                </template>
+                            </ButtonComponent>
+                            <ButtonComponent v-if="isCombining" @action="combineEntries()"
+                                :label="t('time.actions.confirm')">
+                                <template #prefix>
+                                    <Check class="size-4">
+                                    </Check>
+                                </template>
+                            </ButtonComponent>
+                            <ButtonComponent v-else @action="isCombining = !isCombining" outlined
+                                :label="t('time.actions.combine')">
+                                <template #prefix>
+                                    <Combine class="size-4">
+                                    </Combine>
+                                </template>
+                            </ButtonComponent>
+                        </div>
+
+                    </div>
+                    <ConvexQuery :query="api.time_entries.getTimeEntriesByProjectId"
+                        :args="{ project_id: id as Id<'projects'> }">
+
+                        <template #loading>loading...</template>
+                        <template #empty>no recent tasks yet...</template>
+
+                        <template #default="{ data: entries }">
 
 
 
-                                <div v-for="entry in entries" :key="entry._id" id="printable-content">
-                                    <TimeEntry :id="entry._id" ref="timeEntry" :combine="isCombining"
-                                        @delete="deleteTimeEntryById(entry._id)"
-                                        :start="getLocalTimeString(entry.start_time)" :stop="entry.end_time ?
-                                            getLocalTimeString(entry.end_time ?? 0) :
-                                            '--:--'" :workingtime="entry.end_time ?
+                            <div v-for="entry in entries" :key="entry._id" id="printable-content">
+                                <TimeEntry :id="entry._id" ref="timeEntry" :combine="isCombining"
+                                    @delete="deleteTimeEntryById(entry._id)"
+                                    :start="getLocalTimeString(entry.start_time)" :stop="entry.end_time ?
+                                        getLocalTimeString(entry.end_time ?? 0) :
+                                        '--:--'" :workingtime="entry.end_time ?
                                                 getWorktime(entry.end_time - entry.start_time) :
                                                 '--:--'" :date="entry.start_time">
 
-                                    </TimeEntry>
-                                </div>
+                                </TimeEntry>
+                            </div>
 
 
 
 
-                            </template>
-                        </ConvexQuery>
-                    </div>
-
-
+                        </template>
+                    </ConvexQuery>
                 </div>
-            </SignedIn>
-            <SignedOut>
-                <RedirectToSignIn></RedirectToSignIn>
-            </SignedOut>
+
+
+            </div>
+
 
         </div>
     </div>

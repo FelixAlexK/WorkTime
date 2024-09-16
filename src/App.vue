@@ -2,7 +2,8 @@
 import { RouterView } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useLocaleStore } from './stores/i18n'
-import { ref, onMounted, watch } from 'vue';
+import { ref, watch } from 'vue';
+
 
 const { getLocale, setLocale } = useLocaleStore();
 const { locale, availableLocales } = useI18n();
@@ -37,7 +38,10 @@ watch(locale, (newLocale) => {
         <Transition mode="out-in">
           <KeepAlive>
             <Suspense>
-              <component :is="Component"></component>
+
+              <component :is="Component">
+              </component>
+
               <template #fallback>
                 Loading...
               </template>
