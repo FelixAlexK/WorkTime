@@ -46,7 +46,7 @@ defineExpose({ checkbox, id, date })
                 </time>
             </div>
         </div>
-        <div class="flex items-center justify-end " id="printable-content">
+        <div class="flex items-center justify-end ">
             <div v-if="combine" class="inline-flex items-center">
                 <label class="flex items-center cursor-pointer relative">
                     <input v-model="checkbox" type="checkbox"
@@ -59,10 +59,11 @@ defineExpose({ checkbox, id, date })
                 </label>
 
             </div>
-            <button v-else @click="$emit('delete')">
-
+            <button v-else @click="$emit('delete')" class="delete-btn">
                 <X class="size-4"></X>
             </button>
         </div>
     </div>
 </template>
+
+<style></style>

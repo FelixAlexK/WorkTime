@@ -12,11 +12,13 @@ import DrawerComponent from '@/components/DrawerComponent.vue';
 import ErrorAlert from '@/components/ErrorAlert.vue';
 import { allDatesEqual, checkIfDateIsInFuture, convertToTimestamp, getWorktime, getLocalTimeString } from '@/utils/index.js';
 import { useI18n } from 'vue-i18n'
-import { watch } from 'fs';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { createPDFExport } from '@/utils/export.js';
 
 const { t } = useI18n()
 
-const props = defineProps<{ id: string, project: string }>()
+const { id, project } = defineProps<{ id: string, project: string }>()
 
 const isEditing = ref(false)
 const isCombining = ref(false)
@@ -34,9 +36,22 @@ const locale = ref(navigator.language)
 const deleteTimeEntry = useConvexMutation(api.time_entries.deleteTimeEntryById)
 const insertWorkingTime = useConvexMutation(api.time_entries.createWorkingTime)
 const combineWorkingTime = useConvexMutation(api.time_entries.combineTimeEntries)
-const getRunningTimeEntry = useConvexQuery(api.time_entries.getRunningTimeEntryByProjectId, { project_id: props.id as Id<'projects'> })
+const getRunningTimeEntry = useConvexQuery(api.time_entries.getRunningTimeEntryByProjectId, { project_id: id as Id<'projects'> })
+const getTimeEntries = useConvexQuery(api.time_entries.getTimeEntriesByProjectId, { project_id: id as Id<'projects'> })
 
 
+const exportToPdf = async () => {
+    try {
+        // Fetch data from backend
+
+        const data = await getTimeEntries.suspense()
+
+        createPDFExport(data, project)
+    } catch (error) {
+        console.error('Error exporting to PDF:', error);
+        alert('An error occurred while generating the PDF.');
+    }
+};
 
 const deleteTimeEntryById = async (id: Id<'time_entries'>) => {
     try {
@@ -54,9 +69,9 @@ const deleteTimeEntryById = async (id: Id<'time_entries'>) => {
 
 
 
-const print = () => {
+const print = async () => {
     isEditing.value = false
-    window.print()
+    await exportToPdf()
 }
 
 const createWorkingTime = async () => {
@@ -73,7 +88,7 @@ const createWorkingTime = async () => {
         }
 
 
-        await insertWorkingTime.mutate({ project_id: props.id as Id<'projects'>, start_time: convertToTimestamp(start.toString()), end_time: convertToTimestamp(end.toString()) })
+        await insertWorkingTime.mutate({ project_id: id as Id<'projects'>, start_time: convertToTimestamp(start.toString()), end_time: convertToTimestamp(end.toString()) })
         if (insertWorkingTime.error.value) {
             errorMessage.value = 'Error while creating time entry'
             showAlert.value = true
@@ -171,7 +186,7 @@ onMounted(() => {
 
             <PageHeader @return="$router.push('/')" :label="t('time.title', { title: project })">
                 <template #action>
-                    <ButtonComponent @action="print" outlined :label="t('time.actions.print')">
+                    <ButtonComponent @action="exportToPdf" outlined :label="t('time.actions.print')">
                         <template #prefix>
                             <Printer class="size-4">
                             </Printer>
@@ -184,7 +199,7 @@ onMounted(() => {
 
 
             <div class=" p-8 flex flex-col gap-4">
-                <TimeCard class="not-printable" :project-id="id as Id<'projects'>">
+                <TimeCard :project-id="id as Id<'projects'>">
 
                 </TimeCard>
                 <div v-auto-animate
@@ -235,41 +250,34 @@ onMounted(() => {
                         </div>
 
                     </div>
-                    <ConvexQuery :query="api.time_entries.getTimeEntriesByProjectId"
-                        :args="{ project_id: id as Id<'projects'> }">
-
-                        <template #loading>loading...</template>
-                        <template #empty>no recent tasks yet...</template>
-
-                        <template #default="{ data: entries }">
-
-
-
-                            <div v-for="entry in entries" :key="entry._id" id="printable-content">
-                                <TimeEntry :id="entry._id" ref="timeEntry" :combine="isCombining"
-                                    @delete="deleteTimeEntryById(entry._id)"
-                                    :start="getLocalTimeString(entry.start_time)" :stop="entry.end_time ?
-                                        getLocalTimeString(entry.end_time ?? 0) :
-                                        '--:--'" :workingtime="entry.end_time ?
-                                            getWorktime(entry.end_time - entry.start_time) :
-                                            '--:--'" :date="entry.start_time">
-
-                                </TimeEntry>
-                            </div>
-
-
-
-
-                        </template>
-                    </ConvexQuery>
+                    <div id="printable-content">
+                        <ConvexQuery :query="api.time_entries.getTimeEntriesByProjectId"
+                            :args="{ project_id: id as Id<'projects'> }">
+                            <template #loading>loading...</template>
+                            <template #empty>no recent tasks yet...</template>
+                            <template #default="{ data: entries }">
+                                <div v-for="entry in entries" :key="entry._id" class="print-entry">
+                                    <TimeEntry :id="entry._id" ref="timeEntry" :combine="isCombining"
+                                        @delete="deleteTimeEntryById(entry._id)"
+                                        :start="getLocalTimeString(entry.start_time)" :stop="entry.end_time ?
+                                            getLocalTimeString(entry.end_time ?? 0) :
+                                            '--:--'" :workingtime="entry.end_time ?
+                                                getWorktime(entry.end_time - entry.start_time) :
+                                                '--:--'" :date="entry.start_time">
+                                    </TimeEntry>
+                                </div>
+                            </template>
+                        </ConvexQuery>
+                    </div>
                 </div>
-
-
             </div>
 
 
         </div>
+
+
     </div>
+
 
 
 
@@ -277,22 +285,40 @@ onMounted(() => {
 
 <style lang="css">
 @media print {
-    body * {
-        visibility: hidden;
 
-    }
 
-    .not-printable {
-        visibility: hidden;
-    }
 
+    /* Ensure printable content is visible */
     #printable-content,
     #printable-content * {
         visibility: visible;
 
     }
 
+    #printable-content .delete-btn {
+        display: none;
+    }
 
+    /* Style for individual time entries */
+    .print-entry {
+        margin-bottom: 1em;
+        padding-bottom: 0.5em;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .print-entry .delete-btn {
+        display: none !important;
+    }
+
+    /* Prevent page breaks within time entries */
+    .print-entry {
+        page-break-inside: avoid;
+    }
+
+    /* Allow page breaks after time entries */
+    .print-entry {
+        page-break-after: auto;
+    }
 }
 
 .dp__theme_light {
