@@ -10,7 +10,7 @@ defineEmits(['return'])
 
 <template>
     <header class="not-printable">
-        <div class="border-b flex flex-row p-4 w-full justify-between items-center">
+        <div class="border-b flex flex-col gap-y-4 md:flex-row p-4 w-full justify-between items-center">
             <div class="flex flex-row gap-4 items-center">
                 <SignedIn>
 

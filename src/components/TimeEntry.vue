@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import type { Id } from 'convex/_generated/dataModel';
-import { Play, StopCircle, Timer, Calendar, X, Check } from 'lucide-vue-next';
+import { Play, StopCircle, Timer, Calendar, Trash, Check } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n'
+import ButtonComponent from './ButtonComponent.vue';
 
 const { d } = useI18n()
-const { combine = false, id, date } = defineProps<{ start: string, stop: string, workingtime: string, date: number, combine: boolean, id: Id<'time_entries'> }>()
+const { combine = false, id, date } = defineProps<{ start: string, stop: string, workingtime: string, date: number, combine: boolean, id: Id<'time_entries'>, edit: boolean }>()
 defineEmits(['delete'])
 
 const checkbox = ref<boolean>(false)
@@ -14,10 +15,10 @@ defineExpose({ checkbox, id, date })
 </script>
 
 <template>
-    <div class="w-full min-w-fit px-4 py-2 h-fit border border-gray-200 rounded shadow flex flex-row   ">
+    <div class="w-full min-w-fit px-4 py-2 h-12 border border-gray-200 rounded shadow flex flex-row   ">
         <div class="flex flex-row items-center justify-start gap-2 w-full">
             <Calendar class="size-4"></Calendar>
-            <time datetime="" class=" text-nowrap">
+            <time datetime="" class="">
                 {{ d(new Date(date), 'short') }}
             </time>
         </div>
@@ -59,9 +60,17 @@ defineExpose({ checkbox, id, date })
                 </label>
 
             </div>
-            <button v-else @click="$emit('delete')" class="delete-btn">
-                <X class="size-4"></X>
-            </button>
+            <div v-else-if="!edit" class="px-4 py-2 w-12 h-8">
+
+            </div>
+
+            <ButtonComponent v-else-if="edit" @action="$emit('delete')" class="delete-btn" appearance="error">
+                <template #prefix>
+
+                    <Trash class="size-4">
+                    </Trash>
+                </template>
+            </ButtonComponent>
         </div>
     </div>
 </template>
