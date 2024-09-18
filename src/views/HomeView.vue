@@ -69,6 +69,8 @@ watchEffect(() => {
     searchInput.value
   }
 })
+
+
 </script>
 
 <template>
@@ -143,21 +145,22 @@ watchEffect(() => {
           <ConvexQuery :query="api.projects.searchProjectByName" :args="{ name: searchInput }">
             <template #loading>Loading...</template>
             <template #error="{ error }">
-              <ClerkLoaded>
-                {{ error }}
-              </ClerkLoaded>
+
+              {{ error }}
+
             </template>
             <template #empty>
-              <ClerkLoaded>
-                No Projects yet.
-              </ClerkLoaded>
+
+              {{ t('project.empty') }}
+
             </template>
             <template #default="{ data: projects }">
               <ClerkLoaded>
                 <div class="w-full" v-for="project in projects" :key="project._id">
                   <ProjectItem :edit="isEditing" :name="project.name" :date="project._creationTime"
                     @open="$router.push({ name: 'times', params: { id: project._id, project: project.name } })"
-                    @delete="deleteProjectById(project._id)"></ProjectItem>
+                    @delete="deleteProjectById(project._id)" :description="project.description || undefined">
+                  </ProjectItem>
                 </div>
               </ClerkLoaded>
 

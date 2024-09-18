@@ -10,11 +10,13 @@
   },
   "project": {
     "title": "Projekte",
+    "empty": "Es sind noch keine Projekte vorhanden.",
     "actions": {
-      "new": "Neu",
-      "edit": "Bearbeiten",
+      "new": "neu",
+      "edit": "bearbeiten",
       "settings": "Einstellungen",
-      "open": "Öffnen"
+      "open": "öffnen",
+      "delete": "löschen"
     },
     "search": {
       "placeholder": "Projekt suchen"
@@ -30,6 +32,7 @@
   },
   "time": {
     "title": "{title}",
+    "empty": "noch keine Aufgaben erstellt.",
     "recent": {
       "title": "Letzte Aufgaben"
     },
@@ -44,7 +47,7 @@
       "new": "neu",
       "combine": "kombinieren",
       "confirm": "bestätigen",
-      "print": "drucken"
+      "download": "download"
     },
     "create": {
       "title": "Neue Arbeitszeit",

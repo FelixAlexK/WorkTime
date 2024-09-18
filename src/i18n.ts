@@ -15,15 +15,25 @@ export default createI18n<[MessageSchema], 'en' | 'de'>({
     de: {
       short: {
         day: 'numeric',
+        month: 'numeric',
+        year: 'numeric'
+      },
+      long: {
+        day: 'numeric',
         month: 'short',
         year: 'numeric'
       }
     },
     en: {
       short: {
-        year: 'numeric',
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric'
+      },
+      long: {
+        day: 'numeric',
         month: 'short',
-        day: 'numeric'
+        year: 'numeric'
       }
     }
   }
