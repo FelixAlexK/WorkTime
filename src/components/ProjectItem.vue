@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { SquareArrowOutUpRight, Trash } from 'lucide-vue-next';
+import { SquareArrowOutUpRight, Trash, Info } from 'lucide-vue-next';
 import ButtonComponent from './ButtonComponent.vue';
 import { useI18n } from 'vue-i18n'
+import TooltipComponent from './ToolTipComponent.vue';
 
 const { t, d } = useI18n()
-defineProps<{ name: string, date: number, edit: boolean }>()
+defineProps<{ name: string, date: number, edit: boolean, description?: string }>()
 defineEmits(['open', 'delete'])
 </script>
 
@@ -14,8 +15,17 @@ defineEmits(['open', 'delete'])
         <div>
             <time datetime="">{{ d(new Date(date), 'short') }}</time>
         </div>
-        <div>
+        <div class="flex flex-row gap-2 items-center">
             <h1 class="font-bold">{{ name }}</h1>
+
+            <TooltipComponent v-if="description" :text="description" :placement="'right'">
+                <template #trigger>
+                    <Info class="size-4 cursor-pointer"></Info>
+                </template>
+
+            </TooltipComponent>
+
+
         </div>
         <div class="flex items-center justify-end  not-printable">
             <ButtonComponent v-if="edit" :label="t('project.actions.delete')" @action="$emit('delete')"
