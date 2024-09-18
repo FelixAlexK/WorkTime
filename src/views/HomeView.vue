@@ -159,7 +159,8 @@ watchEffect(() => {
                 <div class="w-full" v-for="project in projects" :key="project._id">
                   <ProjectItem :edit="isEditing" :name="project.name" :date="project._creationTime"
                     @open="$router.push({ name: 'times', params: { id: project._id, project: project.name } })"
-                    @delete="deleteProjectById(project._id)"></ProjectItem>
+                    @delete="deleteProjectById(project._id)" :description="project.description || undefined">
+                  </ProjectItem>
                 </div>
               </ClerkLoaded>
 
