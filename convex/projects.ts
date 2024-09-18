@@ -38,6 +38,45 @@ export const deleteProject = mutation({
   }
 })
 
+export const deleteProjectByUserId = mutation({
+  args: { user_id: v.id('users') },
+  handler: async (ctx, args) => {
+    try {
+      const userProjects = await getProjectsByUserId(ctx, { user_id: args.user_id })
+
+      if (userProjects.length > 0) {
+        for (const project of userProjects) {
+          const entries = await getTimeEntriesByProjectId(ctx, { project_id: project._id })
+
+          if (entries.length > 0) {
+            for (const entry of entries) {
+              await deleteTimeEntryById(ctx, { id: entry._id })
+            }
+          }
+          await ctx.db.delete(project._id)
+        }
+      }
+    } catch (error) {
+      throw new ConvexError(`Error while deleting project: ${error}`)
+    }
+  }
+})
+
+export const getProjectsByUserId = query({
+  args: { user_id: v.id('users') },
+  handler: async (ctx, args) => {
+    try {
+      return await ctx.db
+        .query('projects')
+        .filter((q) => q.eq(q.field('user_id'), args.user_id))
+        .order('desc')
+        .collect()
+    } catch (error) {
+      throw new ConvexError(`Error while retrieving projects: ${error}`)
+    }
+  }
+})
+
 export const getProjects = query({
   args: {},
   handler: async (ctx) => {

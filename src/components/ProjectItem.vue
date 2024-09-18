@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SquareArrowOutUpRight, X } from 'lucide-vue-next';
+import { SquareArrowOutUpRight, Trash } from 'lucide-vue-next';
 import ButtonComponent from './ButtonComponent.vue';
 import { useI18n } from 'vue-i18n'
 
@@ -10,7 +10,7 @@ defineEmits(['open', 'delete'])
 
 <template>
     <div
-        class="w-full min-w-fit p-4 h-fit border border-gray-200 rounded shadow flex flex-row  items-center justify-between ">
+        class="w-full min-w-fit p-4 h-fit border border-gray-200 rounded shadow flex flex-col md:flex-row gap-y-4 items-center justify-between ">
         <div>
             <time datetime="">{{ d(new Date(date), 'short') }}</time>
         </div>
@@ -18,10 +18,14 @@ defineEmits(['open', 'delete'])
             <h1 class="font-bold">{{ name }}</h1>
         </div>
         <div class="flex items-center justify-end  not-printable">
-            <button v-if="edit" @click="$emit('delete')">
+            <ButtonComponent v-if="edit" :label="t('project.actions.delete')" @action="$emit('delete')"
+                appearance="error">
+                <template #prefix>
 
-                <X class="size-4"></X>
-            </button>
+                    <Trash class="size-4">
+                    </Trash>
+                </template>
+            </ButtonComponent>
             <ButtonComponent v-else @action="$emit('open')" :label="t('project.actions.open')">
                 <template #prefix>
                     <SquareArrowOutUpRight class="size-4"></SquareArrowOutUpRight>

@@ -1,6 +1,7 @@
 import { internalMutation, query, type QueryCtx } from './_generated/server'
 import type { UserJSON } from '@clerk/backend'
 import { v, type Validator } from 'convex/values'
+import { deleteProjectByUserId } from './projects'
 
 export const current = query({
   args: {},
@@ -32,6 +33,7 @@ export const deleteFromClerk = internalMutation({
     const user = await userByExternalId(ctx, clerkUserId)
 
     if (user !== null) {
+      await deleteProjectByUserId(ctx, { user_id: user._id })
       await ctx.db.delete(user._id)
     } else {
       console.warn(`Can't delete user, there is none for Clerk user ID: ${clerkUserId}`)

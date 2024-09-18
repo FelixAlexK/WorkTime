@@ -28,10 +28,17 @@ export const convertToTimestamp = (dateString: string) => {
   return date.getTime()
 }
 
-export const checkIfDateIsInFuture = (date: Date) => {
+export const checkIfDateIsInFuture = (date: Date): boolean => {
   const currentDate = new Date()
-  if (date > currentDate) return true
-  return false
+
+  // Compare only year, month, and day
+  const currentYearMonthDay =
+    currentDate.getFullYear() * 10000 + (currentDate.getMonth() + 1) * 100 + currentDate.getDate()
+
+  const inputYearMonthDay =
+    date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate()
+
+  return inputYearMonthDay > currentYearMonthDay
 }
 
 export const allDatesEqual = (arr: string[]) => {

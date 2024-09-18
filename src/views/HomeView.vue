@@ -69,6 +69,8 @@ watchEffect(() => {
     searchInput.value
   }
 })
+
+
 </script>
 
 <template>
@@ -143,14 +145,14 @@ watchEffect(() => {
           <ConvexQuery :query="api.projects.searchProjectByName" :args="{ name: searchInput }">
             <template #loading>Loading...</template>
             <template #error="{ error }">
-              <ClerkLoaded>
-                {{ error }}
-              </ClerkLoaded>
+
+              {{ error }}
+
             </template>
             <template #empty>
-              <ClerkLoaded>
-                No Projects yet.
-              </ClerkLoaded>
+
+              {{ t('project.empty') }}
+
             </template>
             <template #default="{ data: projects }">
               <ClerkLoaded>
