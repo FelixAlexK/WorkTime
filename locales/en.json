@@ -1,0 +1,60 @@
+{
+  "settings": {
+    "title": "Settings",
+    "language": "language",
+    "options": {
+      "placeholder": "Select a language",
+      "de": "de-DE",
+      "en": "en-US"
+    }
+  },
+
+  "project": {
+    "title": "Projects",
+    "empty": "No Projects yet.",
+    "actions": {
+      "new": "new",
+      "edit": "edit",
+      "settings": "settings",
+      "open": "open",
+      "delete": "delete"
+    },
+    "search": {
+      "placeholder": "search project"
+    },
+    "create": {
+      "label": "Create Project",
+      "input": {
+        "name": "name",
+        "description": "description"
+      },
+      "submit": "submit"
+    }
+  },
+  "time": {
+    "title": "{title}",
+    "empty": "no tasks created yet.",
+    "recent": {
+      "title": "Recent Tasks"
+    },
+    "tracker": {
+      "title": "Time Tracker",
+      "actions": {
+        "start": "start",
+        "stop": "stop"
+      }
+    },
+    "actions": {
+      "new": "new",
+      "combine": "combine",
+      "confirm": "confirm",
+      "download": "download"
+    },
+    "create": {
+      "title": "New working hours",
+      "start": "start",
+      "stop": "stop",
+      "submit": "submit"
+    }
+  }
+}
